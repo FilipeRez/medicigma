@@ -2,17 +2,17 @@ import { Professional, Patient, Transaction, ClinicConfig } from '../types';
 
 export const DIRECT_IMAGES = {
   // Official MedFinance logo provided in user HTML
-  logoMedFinance: 'https://lh3.googleusercontent.com/aida/AEtjO1WIy2mZnaNLmSYDv99rpeOMhlRUu8PrJMxe7ypxTFPccu2e50tA3iV81Jc4m7v1kPcfUAw7eHB7L_07Ro0NzPgyJnVrQQ6Fq6U2-IzL1XCbFVPMm1ilocsCLtGZQae_x6EzkWp3pm6TzhBcMQVrrs1vxla2mAvsie_Ak7FFIxCTdN5aX5MDoQwfM6Hu9cH6szdKbWKD439Cn4nzBRIHdVM3w0sycffuejAKaVPy3ks__Bkl5LPSy2hCrG0',
+  logoMedFinance: '/assets/logoMedFinance.png',
   // Dra. Isabella Silva portrait
-  avatarIsabella: 'https://lh3.googleusercontent.com/aida/AEtjO1UYfS9KFnA7ieJRj4DmBWFhYE7YKF4PWLNMdwMtM0ohDlY8EfDOVmyF-YB9TOKeGU-FbTlxPZ8UU4kPMoszp8mWNySWhvZxmior0oDT-HnqFehg6fkDLT4FHue7MXJytsAYHwWLjXpxS8OAAV-VV-5GaFfESXEjEllDvwSqbrvzDSi2zsK-UotoIANmrICtmIsM0sUkn8QZKxKLHk19o7fkusFkOH9DON6wCtHLxfW_2IyUkH-So2MBq4w',
+  avatarIsabella: '/assets/avatarIsabella.jpg',
   // Headshots for members and patients from the HTML files
-  patientBeatriz: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBrW-kt7xnMrx7nJlxv0Cay2Tso6X1tPk0FcCaOs0Wju-fhJ0JcIW5z0zIGzkn-o8ddgJomgNFqCjufGlzv7QT01Keu_buQEvYvhOUkSSFuP1B8FCGBINZKdxeZ-trf0ySj904zzSQ9_4Jz6qh5kcgmpWpVK4gW_-5_xne_6Oe4ZijkB1KmaxkIKc-2Cf1hg3aQ9CWKTUFz6ziDRWC4xNfjav-1unKUcSbaaHT75Gxn2kelqEJE4-h6',
-  patientMarcos: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCmMFdFJJZy5HGam1yRu7_lUVviN5sPqP1-FUsv6pN5a_al-1bouMT49aZwThW0rUVjhz_ngsPx4sreqy3hrs4PdpjZ-KQkDvfxPq4kQWK1M8HDBtCitsujXXtd2rsb5QxZss6xvNhMXscxx467eWoyF5mx6WpVgvEH0GO462DWImCizHiHSXRFFbtM6t1dPRPx249NEYw6mB_j-L3II1DZ9S6reQW7r7Jo8jzKMnskW_0KSb2m44xb',
-  patientClaudia: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAVw-Dhxlj8RQltr0DA5SkS_2OZ5l-OMs-vXk_EOWwS4HHSg_riirgiYMhOwzzvvQh0_WLFn2OMcAGBThYvSDGYU9HJSxsm9IZ4c7WHiLHhgWpf4sRPoLXDAM4R3gGXoj9O-2fwECcZOQJFmKZY_qpbIT3K7dsIiSw5H52Vyz43a21UjevA3cKVI7LnC1pGr8DBBuT9vZHyMDF4VQjiZZU3fem9C42PTcQM3m24WC3Tad624ne9e0Ir',
-  patientJulio: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgssf0TCLu558s5JJ5nqVQQsfBbZXHvesxDhLV5WQVguNKdnhvh_r95cb3CuRHZvJx7D3WLgdGk_MasmbHFvmHzcsDbxhTXczRCUnnWJ0nI-17FZvyfNgE4NysFWxgGATFr5VvjO-CK6rcpMuMB1ZMgPYBG1WwRhFaOdQnJqK4MBH5FFiXPPS-2SVUKUc2xK_pVHimdBOB1od8lBIdzG-EHl19nqmQVwxzoe149WIB1EcR5D1h0_3A',
-  doctorMarcos: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAf146neLnwEnkIV-JmvfW6syg7F_9UJSJdrWhPp_GzjRemZRg77Ceh4B7eFS-BnSHFs4mxxw485Re5pk-PValyZUirk4b2jgwzHhFiPWwmB-8LBRTGWO6OW3-m3qK6nIxedG8eG6XWP16f2S6-O5Xx5Dp9crTaHZQBgg7iB00ADqtzk7FlJyTHMuXP7k7_M2s1cSFzlyZqv_k3CIPZOCLjvKeDzDc1CsTnc1DL_tGO9R1-WkfRFPrC',
-  receptionCamila: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB5ehLuhBvY1_cRW-G2MUuC0HlIDbKnSY7XbeqqUrq2rhVoe-ZVi_ZZy4LgC4df4MTdjRaPi6rHour-mqZNYvEPJmHA4R608ObE7z5ROeDKRnW4Xx_0JUI-nOZIgERAssJKFnL7aSCx0ZtPycJgowM3_Ie_HpZ5fbFUTBasYFS6sI0R8yFMJvnyrBqv6j0AMeF3CXtH9L2xEBs_MAyZlU7BlwLjkwv6hrdwOT4d3z4cYnro3Wjw106w',
-  doctorRoberto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDhrjC6_6ub-aeSP0crl5MMcMGXyFhBguhQZS-BvGi2nqGbzfE9LIipVV487bj5YhHOO8FxsF6ZUbhv_BoMRQ9l9Bia9TtTM2b8yQ4G8U64Mb1moqbC-IsAaacxjs85MuSTQqMStB4-4a7QZPo_c1sBXobp2S3CZA5uoLtwaq3JbvEkR8h0DTjDRm4jz6KHYM9muj3_SU_-KsBO8g_2i2fV758Pv7eIADjXG2-d8GDkbBO1Lt4rSN4h',
+  patientBeatriz: '/assets/patientBeatriz.jpg',
+  patientMarcos: '/assets/patientMarcos.jpg',
+  patientClaudia: '/assets/patientClaudia.jpg',
+  patientJulio: '/assets/patientJulio.jpg',
+  doctorMarcos: '/assets/doctorMarcos.jpg',
+  receptionCamila: '/assets/receptionCamila.jpg',
+  doctorRoberto: '/assets/doctorRoberto.jpg',
 };
 
 export const INITIAL_CLINIC_CONFIG: ClinicConfig = {

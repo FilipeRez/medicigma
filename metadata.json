@@ -2,5 +2,5 @@
   "name": "MedFinance Clinical Suite",
   "description": "Sistema integrado de governança clínica, gestão financeira médica, faturamento TISS, controle de repasses e carteira de pacientes com conformidade CFM e LGPD.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
