@@ -6,14 +6,14 @@ O que está em aberto. **Carrega em toda chamada de `/medicigma`.**
 
 ## Em aberto
 
-- **Escolher o caminho do deploy na Vercel.** A conta é Hobby (gratuita), mas a integração
-  do GitHub com a Vercel **não está instalada**, e a CLI (`vercel`) não está autenticada
-  nesta máquina. Sem uma das duas, não há como publicar daqui. Opções em `20-codigo.md`.
 - **Perguntas 3 a 6 de `10-produto.md`**: escopo exato do MVP, LGPD, stack do backend e
   relação com o `financas-casal`. Agora são respondíveis — as duas primeiras, que as
   bloqueavam, foram decididas em 17/09.
 - **Backend não existe.** Tudo vive no `localStorage` do navegador: some ao limpar os dados
   do site e não passa de um aparelho para outro. É suficiente para a validação, e nada além.
+
+- **A lista "Vencimentos & Repasses" do painel ainda é fixa** — é o último pedaço de maquete
+  com número inventado nas telas principais.
 
 ## Decidido, para não rediscutir
 
@@ -33,6 +33,11 @@ O que está em aberto. **Carrega em toda chamada de `/medicigma`.**
   automaticamente ao abrir a pasta, e a arquitetura nova quer carregamento sob comando.
 
 ## Resolvidas em 17/09/2026
+
+- ~~Escolher o caminho do deploy~~ → publicado na Vercel pela integração do GitHub; todo push
+  em `main` republica. Link e detalhes em `20-codigo.md`.
+- ~~Telas do portal web com números de maquete~~ → Finanças, Pacientes e Governança passaram
+  a calcular sobre os lançamentos; White-Label não abria pelo menu e foi corrigido.
 
 - ~~Escolher gerenciador de pacotes~~ → npm.
 - ~~`.playwright-mcp` dentro do projeto~~ → não existia mais; entrou no `.gitignore` de
