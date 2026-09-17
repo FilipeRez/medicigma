@@ -25,8 +25,9 @@ tempo investigando de novo o que já se sabe que não existe. Última verificaç
 - **Tela Relatórios & DRE** (`RelatoriosView.tsx`): série mensal de receitas × despesas em
   SVG puro, despesa por categoria, demonstrativo e exportação. Sem biblioteca de gráficos.
   Par de cores validado para daltonismo (ΔE 13,6 em deuteranopia).
-- **Dashboard lê os lançamentos** — os números fixos saíram. Os totais batem com a tela de
-  Relatórios.
+- **Dashboard, Finanças, Pacientes e Governança leem os lançamentos** — os números fixos
+  saíram em 17/09 e os totais batem entre as telas. O painel compara o mês em curso com o
+  mesmo intervalo do mês anterior, para não medir meio mês contra um mês fechado.
 - **PWA instalável**: `public/manifest.webmanifest`, ícones em `public/icons/`, service
   worker em `public/sw.js` (rede primeiro na navegação, cache primeiro nos arquivos com
   hash) e `vercel.json` com o fallback de rota da SPA.
@@ -45,21 +46,25 @@ tempo investigando de novo o que já se sabe que não existe. Última verificaç
 
 ## Dívidas conhecidas
 
-1. **`DashboardView.tsx` ainda tem trechos de maquete** abaixo dos indicadores — a
-   concentração por operadora e a lista de vencimentos não vêm dos lançamentos.
+1. **A lista "Vencimentos & Repasses" do painel ainda é fixa** — os três itens não vêm
+   dos lançamentos. O resto do painel foi ligado aos dados em 17/09.
 2. **O bundle está em ~455 KB** (123 KB comprimido). Aceitável para a prévia; se virar
    produto, dividir por rota.
 3. **Sem teste automatizado.** A verificação hoje é `tsc` mais navegação manual.
 
-## Caminhos de deploy (a escolha está pendente)
+## Deploy (resolvido em 17/09)
 
-A conta da Vercel é **Hobby, gratuita**. Nenhum dos dois caminhos está pronto:
+Publicado em `https://medicigma-filiperezs-projects.vercel.app`, projeto `medicigma` no time
+`filiperezs-projects` (plano Hobby, gratuito), ligado ao repositório pela integração do
+GitHub — **todo push em `main` republica sozinho**.
 
-- **Integração GitHub** (recomendado): instalar o app da Vercel em
-  `https://github.com/apps/vercel` e dar acesso ao repo `FilipeRez/medicigma`. Depois disso o
-  projeto se liga em segundos e **todo push republica sozinho**.
-- **CLI**: `npx vercel login` num terminal interativo e depois `npx vercel --prod`. Resolve
-  uma vez, mas não dá deploy contínuo.
+A **proteção de acesso da Vercel foi desligada** de propósito: com ela ativa, quem abrisse o
+link caía numa tela de login da Vercel. O link é público; os dados são fictícios. Para fechar
+depois, basta reativar o `ssoProtection` ou pôr senha no projeto.
+
+O que travou no caminho, para não repetir: o GitHub App da Vercel estava instalado mas **sem
+acesso a este repositório** — o erro da API dizia "install", quando o que faltava era
+*Configure → Repository access*. A CLI (`npx vercel`) não está autenticada nesta máquina.
 
 ## Histórico
 
@@ -69,3 +74,5 @@ A conta da Vercel é **Hobby, gratuita**. Nenhum dos dois caminhos está pronto:
 | 15/09 | `feat: initialize MedFinance Clinical Suite project` — o código real entrou aqui |
 | 17/09 | `chore: resolve pendencias tecnicas do prototipo` — imagens locais, npm eleito, dependências mortas removidas |
 | 17/09 | `feat: multi-tenant de escritorio contabil, login, repasses, DRE e PWA` |
+| 17/09 | Publicado na Vercel, ligado ao GitHub: `https://medicigma-filiperezs-projects.vercel.app`. Todo push em `main` republica |
+| 17/09 | `fix: portal web deixa de mostrar numeros de maquete` — revisão do `/admin` em desktop |
