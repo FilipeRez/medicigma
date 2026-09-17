@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -39,16 +39,61 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
   onRecursoGlosa,
   onShowToast,
 }) => {
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(10); // 10 = Nov
   const [privacyActive, setPrivacyActive] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'todos' | 'receber' | 'pagar' | 'ofx'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const months = [
-    'Janeiro 2024', 'Fevereiro 2024', 'Março 2024', 'Abril 2024',
-    'Maio 2024', 'Junho 2024', 'Julho 2024', 'Agosto 2024',
-    'Setembro 2024', 'Outubro 2024', 'Novembro 2024', 'Dezembro 2024'
+  const NOMES_MES = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
   ];
+  const rotuloMes = (ym: string) => `${NOMES_MES[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
+
+  /** Só existem os meses que têm lançamento — navegar para um mês vazio não ajuda ninguém. */
+  const mesesDisponiveis = useMemo(
+    () => Array.from(new Set(transactions.map((t) => t.isoDate.slice(0, 7)))).sort(),
+    [transactions]
+  );
+
+  const [mesEscolhido, setMesEscolhido] = useState<string | null>(null);
+  const mesCorrente = new Date().toISOString().slice(0, 7);
+  const mesAtivo =
+    mesEscolhido && mesesDisponiveis.includes(mesEscolhido)
+      ? mesEscolhido
+      : mesesDisponiveis.includes(mesCorrente)
+        ? mesCorrente
+        : mesesDisponiveis[mesesDisponiveis.length - 1] ?? mesCorrente;
+
+  const indiceMes = mesesDisponiveis.indexOf(mesAtivo);
+  const irParaMes = (delta: number) => {
+    const alvo = indiceMes + delta;
+    if (alvo >= 0 && alvo < mesesDisponiveis.length) setMesEscolhido(mesesDisponiveis[alvo]);
+  };
+
+  /** Resumo do mês, calculado sobre os lançamentos — é o que o cabeçalho exibe. */
+  const resumo = useMemo(() => {
+    const somaDoMes = (ym: string) => {
+      const doMes = transactions.filter((t) => t.isoDate.startsWith(ym));
+      const receitas = doMes.filter((t) => t.type === 'receita' && t.status !== 'Glosa');
+      const despesas = doMes.filter((t) => t.type === 'despesa');
+      const entradas = receitas.reduce((a, t) => a + t.amount, 0);
+      const saidas = despesas.reduce((a, t) => a + Math.abs(t.amount), 0);
+      const pendentesReceber = receitas.filter((t) => t.status === 'Pendente');
+      const pendentesPagar = despesas.filter((t) => t.status === 'Pendente');
+      return {
+        saldo: entradas - saidas,
+        aReceber: pendentesReceber.reduce((a, t) => a + t.amount, 0),
+        aPagar: pendentesPagar.reduce((a, t) => a + Math.abs(t.amount), 0),
+        titulosReceber: pendentesReceber.length,
+        titulosPagar: pendentesPagar.length,
+      };
+    };
+    const atual = somaDoMes(mesAtivo);
+    const anteriorYm = mesesDisponiveis[indiceMes - 1];
+    const anterior = anteriorYm ? somaDoMes(anteriorYm).saldo : 0;
+    const variacao = anterior !== 0 ? ((atual.saldo - anterior) / Math.abs(anterior)) * 100 : null;
+    return { ...atual, variacao };
+  }, [transactions, mesAtivo, mesesDisponiveis, indiceMes]);
 
   const formatMoney = (val: number) => {
     if (privacyActive) return 'R$ ••••••••';
@@ -70,6 +115,9 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
   };
 
   const filteredTransactions = transactions.filter((tx) => {
+    // Só o mês em foco
+    if (!tx.isoDate.startsWith(mesAtivo)) return false;
+
     // Filter by type
     if (activeFilter === 'receber' && tx.type !== 'receita') return false;
     if (activeFilter === 'pagar' && tx.type !== 'despesa') return false;
@@ -104,7 +152,7 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `financeiro-${months[currentMonthIndex].replace(' ', '-')}.csv`);
+    link.setAttribute('download', `financeiro-${mesAtivo}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -117,8 +165,9 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
-            onClick={() => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 11))}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+            onClick={() => irParaMes(-1)}
+            disabled={indiceMes <= 0}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-slate-100"
             title="Mês anterior"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -126,12 +175,13 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200/60">
             <Calendar className="w-3.5 h-3.5 text-teal-600" />
             <span className="text-xs sm:text-sm font-bold text-slate-800">
-              {months[currentMonthIndex]}
+              {rotuloMes(mesAtivo)}
             </span>
           </div>
           <button
-            onClick={() => setCurrentMonthIndex((prev) => (prev < 11 ? prev + 1 : 0))}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+            onClick={() => irParaMes(1)}
+            disabled={indiceMes >= mesesDisponiveis.length - 1}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-slate-100"
             title="Próximo mês"
           >
             <ChevronRight className="w-4 h-4" />
@@ -161,13 +211,15 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
             </span>
           </div>
           <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-semibold border border-teal-100">
-            +14.2%
+            {resumo.variacao === null
+              ? 'primeiro mês'
+              : `${resumo.variacao >= 0 ? '+' : ''}${resumo.variacao.toFixed(1)}%`}
           </span>
         </div>
 
         <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-2xl sm:text-3xl font-extrabold text-teal-700 tracking-tight font-display">
-            {formatAbsoluteMoney(17880)}
+          <span className={`text-2xl sm:text-3xl font-extrabold tracking-tight font-display ${resumo.saldo >= 0 ? 'text-teal-700' : 'text-rose-700'}`}>
+            {formatAbsoluteMoney(resumo.saldo)}
           </span>
           <span className="text-xs text-slate-400">fluxo líquido</span>
         </div>
@@ -181,9 +233,9 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
               <span className="text-[11px] font-bold uppercase tracking-wider">A Receber</span>
             </div>
             <span className="text-sm sm:text-base font-bold text-slate-900 font-display">
-              {formatAbsoluteMoney(31800)}
+              {formatAbsoluteMoney(resumo.aReceber)}
             </span>
-            <span className="text-[11px] text-slate-500">24 títulos previstos</span>
+            <span className="text-[11px] text-slate-500">{resumo.titulosReceber} título{resumo.titulosReceber === 1 ? '' : 's'} previsto{resumo.titulosReceber === 1 ? '' : 's'}</span>
           </div>
 
           {/* A Pagar */}
@@ -196,11 +248,11 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
               <span className="w-2 h-2 rounded-full bg-rose-500" />
             </div>
             <span className="text-sm sm:text-base font-bold text-slate-900 font-display">
-              {formatAbsoluteMoney(13920)}
+              {formatAbsoluteMoney(resumo.aPagar)}
             </span>
             <div className="flex items-center gap-1 text-rose-600 text-[11px] font-semibold">
               <Clock className="w-3 h-3" />
-              <span>1 boleto hoje</span>
+              <span>{resumo.titulosPagar} conta{resumo.titulosPagar === 1 ? '' : 's'} em aberto</span>
             </div>
           </div>
         </div>
@@ -216,7 +268,7 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
               : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
           }`}
         >
-          Todos <span className="ml-1 opacity-80 text-[10px]">{transactions.length}</span>
+          Todos <span className="ml-1 opacity-80 text-[10px]">{transactions.filter((t) => t.isoDate.startsWith(mesAtivo)).length}</span>
         </button>
 
         <button

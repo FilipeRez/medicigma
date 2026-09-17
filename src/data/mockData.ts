@@ -82,7 +82,7 @@ export const INITIAL_PROFESSIONALS: Professional[] = [
     avatarUrl: DIRECT_IMAGES.doctorRoberto,
     initials: 'RF',
     color: 'teal',
-    lastAudit: '12/10/2026',
+    lastAudit: '12/08/2026',
   },
 ];
 
@@ -96,17 +96,17 @@ export const INITIAL_PATIENTS: Patient[] = [
     statusBadge: 'Parcela 2/3 (R$ 500)',
     statusType: 'pending',
     ltv: 2850.0,
-    lastDate: '14/10/2026',
+    lastDate: '14/09/2026',
     avatarUrl: DIRECT_IMAGES.patientBeatriz,
     procedures: [
       {
         title: 'Consulta Especializada + Bioimpedância',
-        detail: 'Guia TISS #90218 • 14/10/2026',
+        detail: 'Guia TISS #90218 • 14/09/2026',
         value: 850.0,
       },
       {
         title: 'Procedimento Laser CO2 Fracionado',
-        detail: 'Parcela 2 pendente • Venc. 20/10',
+        detail: 'Parcela 2 pendente • Venc. 20/09',
         value: 500.0,
         isPending: true,
       },
@@ -121,12 +121,12 @@ export const INITIAL_PATIENTS: Patient[] = [
     statusBadge: 'Em Dia',
     statusType: 'settled',
     ltv: 5400.0,
-    lastDate: '22/10/2026',
+    lastDate: '22/08/2026',
     avatarUrl: DIRECT_IMAGES.patientMarcos,
     procedures: [
       {
         title: 'Check-up Executivo VIP',
-        detail: 'Pix Instantâneo • 22/10/2026',
+        detail: 'Pix Instantâneo • 22/08/2026',
         value: 2400.0,
       },
       {
@@ -145,7 +145,7 @@ export const INITIAL_PATIENTS: Patient[] = [
     statusBadge: 'Glosa R$ 350,00',
     statusType: 'glosa',
     ltv: 1150.0,
-    lastDate: '18/10/2026',
+    lastDate: '18/08/2026',
     avatarUrl: DIRECT_IMAGES.patientClaudia,
     glosaDetail: {
       code: '1302',
@@ -176,17 +176,17 @@ export const INITIAL_PATIENTS: Patient[] = [
     statusBadge: 'Em Dia',
     statusType: 'settled',
     ltv: 820.0,
-    lastDate: '05/10/2026',
+    lastDate: '05/09/2026',
     avatarUrl: DIRECT_IMAGES.patientJulio,
     procedures: [
       {
         title: 'Consulta Retorno 30 dias',
-        detail: 'Lote #8812 • 05/10/2026',
+        detail: 'Lote #8812 • 05/09/2026',
         value: 410.0,
       },
       {
         title: 'Coparticipação Ambulatorial',
-        detail: 'Quitada via POS • 05/10/2026',
+        detail: 'Quitada via POS • 05/09/2026',
         value: 410.0,
       },
     ],

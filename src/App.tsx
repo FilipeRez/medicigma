@@ -186,6 +186,7 @@ function AppContent() {
 
           {(activeTab === 'acessos' || activeTab === 'whitelabel') && canManage && (
             <GovernanceView
+              section={activeTab === 'whitelabel' ? 'whitelabel' : 'acessos'}
               professionals={professionals}
               clinicConfig={clinicConfig}
               onUpdateClinicConfig={(config) => update({ config })}

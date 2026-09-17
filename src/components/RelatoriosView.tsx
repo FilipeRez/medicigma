@@ -105,7 +105,7 @@ export const RelatoriosView: React.FC<{ onShowToast: (msg: string) => void }> = 
   const PAD_T = 8;
   const alturaUtil = H - PAD_B - PAD_T;
   const larguraGrupo = W / Math.max(meses.length, 1);
-  const larguraBarra = Math.min(18, larguraGrupo / 3.2);
+  const larguraBarra = Math.min(26, larguraGrupo / 3.2);
 
   return (
     <div className="space-y-4">

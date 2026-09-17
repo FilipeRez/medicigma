@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   TrendingUp,
+  TrendingDown,
   Stethoscope,
   Building2,
   Calendar,
@@ -52,10 +53,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return meses.filter((m) => m <= corrente).pop() ?? meses[meses.length - 1] ?? corrente;
   }, [data.transactions, hojeIso]);
 
+  /** Interpreta YYYY-MM-DD no fuso local — new Date(iso) seria lido como UTC. */
+  const dataLocal = (iso: string) => {
+    const [a, m, d] = iso.split('-').map(Number);
+    return new Date(a, m - 1, d);
+  };
+
   const noPeriodo = useMemo(() => {
-    const limite = new Date(hojeIso);
+    const limite = dataLocal(hojeIso);
     limite.setDate(limite.getDate() - 7);
-    const inicioSemana = limite.toISOString().slice(0, 10);
+    const inicioSemana = `${limite.getFullYear()}-${String(limite.getMonth() + 1).padStart(2, '0')}-${String(limite.getDate()).padStart(2, '0')}`;
     return data.transactions.filter((t) => {
       if (period === 'hoje') return t.isoDate === hojeIso;
       if (period === 'semana') return t.isoDate > inicioSemana && t.isoDate <= hojeIso;
@@ -76,12 +83,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const glosas = noPeriodo.filter((t) => t.status === 'Glosa').reduce((a, t) => a + Math.abs(t.amount), 0);
     const resultado = faturamento - totalDespesas;
 
-    // mês anterior, para a variação
+    // Variação contra o mês anterior. Quando o mês exibido ainda está em curso,
+    // a comparação é com o MESMO intervalo de dias do mês anterior — senão um mês
+    // pela metade sempre pareceria queda diante de um mês fechado.
     const [ano, mes] = mesRef.split('-').map(Number);
     const anteriorData = new Date(ano, mes - 2, 1);
     const anteriorYm = `${anteriorData.getFullYear()}-${String(anteriorData.getMonth() + 1).padStart(2, '0')}`;
+    const mesEmCurso = mesRef === hojeIso.slice(0, 7);
+    const diaLimite = mesEmCurso ? Number(hojeIso.slice(8, 10)) : 31;
     const anterior = data.transactions
-      .filter((t) => t.isoDate.slice(0, 7) === anteriorYm && t.type === 'receita' && t.status !== 'Glosa')
+      .filter(
+        (t) =>
+          t.isoDate.slice(0, 7) === anteriorYm &&
+          Number(t.isoDate.slice(8, 10)) <= diaLimite &&
+          t.type === 'receita' &&
+          t.status !== 'Glosa'
+      )
       .reduce((a, t) => a + t.amount, 0);
     const variacao = anterior > 0 ? ((faturamento - anterior) / anterior) * 100 : 0;
 
@@ -96,21 +113,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       margem: faturamento > 0 ? (resultado / faturamento) * 100 : 0,
       anterior,
       variacao,
+      comparacaoParcial: mesEmCurso,
       pctParticular: faturamento > 0 ? (particular / faturamento) * 100 : 0,
       pctConvenio: faturamento > 0 ? (convenio / faturamento) * 100 : 0,
       contagemReceber: receitas.filter((t) => t.status === 'Pendente').length,
       contagemPagar: despesas.filter((t) => t.status === 'Pendente').length,
     };
-  }, [noPeriodo, data.transactions, mesRef]);
+  }, [noPeriodo, data.transactions, mesRef, hojeIso]);
 
   /** Últimos 7 dias de entradas, direto dos lançamentos. */
   const dailyData = useMemo(() => {
     const dias: { day: string; value: number; height: number; isPeak?: boolean }[] = [];
     const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(hojeIso);
+      const d = dataLocal(hojeIso);
       d.setDate(d.getDate() - i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const value = data.transactions
         .filter((t) => t.isoDate === iso && t.type === 'receita' && t.status !== 'Glosa')
         .reduce((a, t) => a + t.amount, 0);
@@ -125,6 +143,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [data.transactions, hojeIso]);
 
   const mediaDiaria = dailyData.reduce((a, d) => a + d.value, 0) / 7;
+
+  const porCategoria = useMemo(() => {
+    const mapa = new Map<string, number>();
+    noPeriodo
+      .filter((t) => t.type === 'receita' && t.status !== 'Glosa')
+      .forEach((t) => mapa.set(t.category, (mapa.get(t.category) ?? 0) + t.amount));
+    const total = Array.from(mapa.values()).reduce((a, v) => a + v, 0);
+    return Array.from(mapa.entries())
+      .map(([categoria, valor]) => ({
+        categoria,
+        valor,
+        percentual: total > 0 ? (valor / total) * 100 : 0,
+      }))
+      .sort((a, b) => b.valor - a.valor)
+      .slice(0, 4);
+  }, [noPeriodo]);
   const profissional = data.professionals.find((p) => p.id === user?.professionalId);
 
   // O médico não enxerga as contas da clínica; para ele os dois últimos cartões
@@ -225,8 +259,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             {period === 'hoje' ? 'Faturamento de hoje' : period === 'semana' ? 'Faturamento da semana' : period === 'ano' ? 'Faturamento do ano' : 'Faturamento do mês'}
           </span>
-          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-xs border border-emerald-200/60">
-            <TrendingUp className="w-3.5 h-3.5" />
+          <div
+            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-xs border ${
+              kpi.variacao >= 0
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                : 'bg-slate-100 text-slate-600 border-slate-200'
+            }`}
+          >
+            {kpi.variacao >= 0 ? (
+              <TrendingUp className="w-3.5 h-3.5" />
+            ) : (
+              <TrendingDown className="w-3.5 h-3.5" />
+            )}
             {kpi.variacao >= 0 ? '+' : ''}{kpi.variacao.toFixed(1)}%
           </div>
         </div>
@@ -235,7 +279,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-display">
             {formatBRL(kpi.faturamento)}
           </span>
-          <span className="text-xs text-slate-400">{kpi.anterior > 0 ? `vs. ${formatBRL(kpi.anterior)}` : 'sem base anterior'}</span>
+          <span className="text-xs text-slate-400">{kpi.anterior > 0
+              ? `vs. ${formatBRL(kpi.anterior)}${kpi.comparacaoParcial ? ' no mesmo período' : ''}`
+              : 'sem base anterior'}</span>
         </div>
 
         {/* Dual Bar Progress */}
@@ -438,7 +484,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {dailyData.map((d) => (
               <div
                 key={d.day}
-                className="flex-1 flex flex-col items-center gap-1 group cursor-pointer"
+                className="flex-1 h-full flex flex-col items-center justify-end gap-1 group cursor-pointer"
                 onMouseEnter={() => setHoveredDay(d.day)}
                 onMouseLeave={() => setHoveredDay(null)}
               >
@@ -467,61 +513,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Concentração por Operadora (TISS) */}
+        {/* Receita por categoria — calculada sobre os lançamentos do período */}
         <div className="pt-2">
           <span className="text-xs font-bold text-slate-700 block mb-2.5">
-            Concentração por Operadora (TISS)
+            Receita por categoria
           </span>
 
-          <div className="space-y-2.5 text-xs">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-teal-700" />
-                  <span className="font-medium text-slate-800">Bradesco Saúde</span>
+          {porCategoria.length === 0 ? (
+            <p className="text-xs text-slate-400">Nenhuma receita lançada neste período.</p>
+          ) : (
+            <div className="space-y-2.5 text-xs">
+              {porCategoria.map((c) => (
+                <div key={c.categoria}>
+                  <div className="flex items-center justify-between mb-1 gap-3">
+                    <span className="font-medium text-slate-800 truncate">{c.categoria}</span>
+                    <span className="flex items-center gap-2 shrink-0">
+                      <span className="text-slate-500 tabular-nums">{formatBRL(c.valor)}</span>
+                      <span className="font-bold text-teal-700 tabular-nums">
+                        {c.percentual.toFixed(0)}%
+                      </span>
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-teal-700 rounded-full"
+                      style={{ width: `${Math.max(c.percentual, 2)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">{formatBRL(13800)}</span>
-                  <span className="font-bold text-teal-700">52%</span>
-                </div>
-              </div>
-              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-teal-700 rounded-full" style={{ width: '52%' }} />
-              </div>
+              ))}
             </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-600" />
-                  <span className="font-medium text-slate-800">Amil Fácil / One Health</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">{formatBRL(7950)}</span>
-                  <span className="font-bold text-teal-700">30%</span>
-                </div>
-              </div>
-              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-sky-600 rounded-full" style={{ width: '30%' }} />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
-                  <span className="font-medium text-slate-800">SulAmérica Especial</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">{formatBRL(4600)}</span>
-                  <span className="font-bold text-teal-700">18%</span>
-                </div>
-              </div>
-              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-slate-500 rounded-full" style={{ width: '18%' }} />
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -621,9 +643,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-900">Conciliação TISS Ativa</p>
+            <p className="text-xs font-bold text-slate-900">Demonstração com dados fictícios</p>
             <p className="text-[11px] text-slate-500 truncate">
-              Último fechamento com ANS sincronizado há 18 min.
+              Envio de XML ao convênio e assinatura de DMED ainda não estão implementados.
             </p>
           </div>
         </div>
@@ -631,7 +653,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           onClick={onOpenTissModal}
           className="text-xs font-semibold text-teal-700 px-3 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 shrink-0 cursor-pointer shadow-2xs"
         >
-          Ver Status
+          Ver o que falta
         </button>
       </div>
     </div>

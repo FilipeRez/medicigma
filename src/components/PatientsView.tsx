@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   UserPlus,
   Users,
@@ -34,6 +34,26 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   onShowToast,
 }) => {
   const [filter, setFilter] = useState<'all' | 'pending' | 'settled' | 'particular' | 'convenio'>('all');
+
+  /** Indicadores da carteira, contados sobre os pacientes reais desta clínica. */
+  const indicadores = useMemo(() => {
+    const procedimentos = patients.flatMap((p) => p.procedures);
+    const emAberto = procedimentos.filter((pr) => pr.isPending);
+    const receita = procedimentos.reduce((a, pr) => a + pr.value, 0);
+    return {
+      ativos: patients.length,
+      atendimentos: procedimentos.length,
+      ticketMedio: procedimentos.length ? receita / procedimentos.length : 0,
+      emAbertoValor: emAberto.reduce((a, pr) => a + pr.value, 0),
+      emAbertoQtd: emAberto.length,
+      comPendencia: patients.filter((p) => p.statusType !== 'settled').length,
+      emDia: patients.filter((p) => p.statusType === 'settled').length,
+      ltvMedio: patients.length ? patients.reduce((a, p) => a + p.ltv, 0) / patients.length : 0,
+    };
+  }, [patients]);
+
+  const moeda = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
   const [searchQuery, setSearchQuery] = useState('');
   const [openDrawerId, setOpenDrawerId] = useState<string | null>(null);
 
@@ -98,10 +118,10 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
             </span>
           </div>
           <div className="mt-2">
-            <span className="text-xl font-bold text-slate-900 font-display">342</span>
+            <span className="text-xl font-bold text-slate-900 font-display">{indicadores.ativos}</span>
             <div className="flex items-center gap-1 mt-0.5 text-[11px]">
-              <span className="text-teal-700 font-bold">+12%</span>
-              <span className="text-slate-400">vs mês ant.</span>
+              <span className="text-teal-700 font-bold">{moeda(indicadores.ltvMedio)}</span>
+              <span className="text-slate-400">LTV médio</span>
             </div>
           </div>
         </div>
@@ -115,10 +135,10 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
             </span>
           </div>
           <div className="mt-2">
-            <span className="text-xl font-bold text-slate-900 font-display">118</span>
+            <span className="text-xl font-bold text-slate-900 font-display">{indicadores.atendimentos}</span>
             <div className="flex items-center gap-1 mt-0.5 text-[11px]">
-              <span className="text-teal-700 font-bold">94%</span>
-              <span className="text-slate-400">taxa pres.</span>
+              <span className="text-teal-700 font-bold">registrados</span>
+              <span className="text-slate-400">na carteira</span>
             </div>
           </div>
         </div>
@@ -132,10 +152,9 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
             </span>
           </div>
           <div className="mt-2">
-            <span className="text-xl font-bold text-slate-900 font-display">R$ 580</span>
+            <span className="text-xl font-bold text-slate-900 font-display">{moeda(indicadores.ticketMedio)}</span>
             <div className="flex items-center gap-1 mt-0.5 text-[11px]">
-              <span className="text-teal-700 font-bold">Estável</span>
-              <span className="text-slate-400">consultas</span>
+              <span className="text-slate-400">por procedimento</span>
             </div>
           </div>
         </div>
@@ -143,16 +162,16 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
         {/* Orçamentos */}
         <div className="snap-start shrink-0 w-44 bg-white rounded-xl p-3 border border-slate-200 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-slate-500">Orçamentos</span>
+            <span className="text-[11px] font-medium text-slate-500">Em aberto</span>
             <span className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
               <Receipt className="w-3.5 h-3.5" />
             </span>
           </div>
           <div className="mt-2">
-            <span className="text-xl font-bold text-slate-900 font-display">R$ 14.200</span>
+            <span className="text-xl font-bold text-slate-900 font-display">{moeda(indicadores.emAbertoValor)}</span>
             <div className="flex items-center gap-1 mt-0.5 text-[11px]">
-              <span className="text-teal-700 font-bold">5 propostas</span>
-              <span className="text-slate-400">abertas</span>
+              <span className="text-teal-700 font-bold">{indicadores.emAbertoQtd} item{indicadores.emAbertoQtd === 1 ? '' : 's'}</span>
+              <span className="text-slate-400">a receber</span>
             </div>
           </div>
         </div>
@@ -198,7 +217,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
             }`}
           >
-            Com Pendência (14)
+            Com Pendência ({indicadores.comPendencia})
           </button>
           <button
             onClick={() => setFilter('settled')}
@@ -208,7 +227,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
             }`}
           >
-            Em Dia (328)
+            Em Dia ({indicadores.emDia})
           </button>
           <button
             onClick={() => setFilter('particular')}

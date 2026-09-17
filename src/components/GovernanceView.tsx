@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ShieldCheck,
   Palette,
@@ -25,6 +25,8 @@ import { Professional, ClinicConfig } from '../types';
 import { DIRECT_IMAGES } from '../data/mockData';
 
 interface GovernanceViewProps {
+  /** Qual aba o menu lateral pediu — sem isso, clicar em White-Label não mudava a tela. */
+  section?: 'acessos' | 'whitelabel';
   professionals: Professional[];
   clinicConfig: ClinicConfig;
   onUpdateClinicConfig: (config: ClinicConfig) => void;
@@ -35,6 +37,7 @@ interface GovernanceViewProps {
 }
 
 export const GovernanceView: React.FC<GovernanceViewProps> = ({
+  section = 'acessos',
   professionals,
   clinicConfig,
   onUpdateClinicConfig,
@@ -43,11 +46,27 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
   onOpenAuditLog,
   onShowToast,
 }) => {
-  const [activeTab, setActiveTab] = useState<'access' | 'whitelabel'>('access');
+  const [activeTab, setActiveTab] = useState<'access' | 'whitelabel'>(
+    section === 'whitelabel' ? 'whitelabel' : 'access'
+  );
+
+  useEffect(() => {
+    setActiveTab(section === 'whitelabel' ? 'whitelabel' : 'access');
+  }, [section]);
   const [roleFilter, setRoleFilter] = useState<'all' | 'medicos' | 'admins' | 'recepcao'>('all');
   const [clinicName, setClinicName] = useState(clinicConfig.name);
   const [selectedColor, setSelectedColor] = useState(clinicConfig.primaryColor);
   const [selectedColorName, setSelectedColorName] = useState(clinicConfig.primaryColorName);
+
+  /** Contagens reais do quadro desta clínica. */
+  const equipe = {
+    total: professionals.length,
+    ativos: professionals.filter((p) => p.status === 'Ativo').length,
+    medicos: professionals.filter((p) => p.role.includes('Médico')).length,
+    admins: professionals.filter((p) => p.role.includes('Administrador')).length,
+    recepcao: professionals.filter((p) => p.role.includes('Recepção')).length,
+  };
+  const pctAtivos = equipe.total ? Math.round((equipe.ativos / equipe.total) * 100) : 0;
 
   const filteredProfessionals = professionals.filter((p) => {
     if (roleFilter === 'medicos') return p.role.includes('Médico');
@@ -155,7 +174,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
           </div>
           <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white border border-teal-200 rounded-lg text-xs font-semibold text-teal-900 shadow-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Tenant Isolado: Jardins
+            Base isolada: {clinicConfig.name}
           </div>
         </div>
       </div>
@@ -167,9 +186,9 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
           <div className="flex flex-col">
             <span className="text-xs font-medium text-slate-500">Total de Membros</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-bold text-slate-900 font-display">14</span>
+              <span className="text-2xl font-bold text-slate-900 font-display">{equipe.total}</span>
               <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                100% ativos
+                {pctAtivos}% ativos
               </span>
             </div>
             <span className="text-[11px] text-slate-400 mt-1">Colaboradores e Corpo Clínico</span>
@@ -184,7 +203,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
           <div className="flex flex-col">
             <span className="text-xs font-medium text-slate-500">Médicos Associados</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-bold text-slate-900 font-display">9</span>
+              <span className="text-2xl font-bold text-slate-900 font-display">{equipe.medicos}</span>
               <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">
                 Visão Restrita
               </span>
@@ -201,7 +220,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
           <div className="flex flex-col">
             <span className="text-xs font-medium text-slate-500">Sócios Administradores</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-bold text-slate-900 font-display">2</span>
+              <span className="text-2xl font-bold text-slate-900 font-display">{equipe.admins}</span>
               <span className="text-[11px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
                 Faturamento Total
               </span>
@@ -218,7 +237,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
           <div className="flex flex-col">
             <span className="text-xs font-medium text-slate-500">Recepção & Faturamento</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-bold text-slate-900 font-display">3</span>
+              <span className="text-2xl font-bold text-slate-900 font-display">{equipe.recepcao}</span>
               <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
                 Operacional
               </span>
@@ -241,7 +260,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
                 Profissionais Credenciados & Perfis Ativos
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Audite permissões individuais de cada médico ou operador na unidade Jardins.
+                Audite as permissões de cada médico ou operador de {clinicConfig.name}.
               </p>
             </div>
 
@@ -253,7 +272,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
                   onChange={(e) => setRoleFilter(e.target.value as any)}
                   className="h-9 pl-8 pr-8 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-600 cursor-pointer"
                 >
-                  <option value="all">Todos os Perfis (14)</option>
+                  <option value="all">Todos os Perfis ({equipe.total})</option>
                   <option value="medicos">Médicos Associados</option>
                   <option value="admins">Sócios / Administradores</option>
                   <option value="recepcao">Recepção & Apoio</option>
@@ -393,25 +412,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
 
           {/* Table Footer / Pagination */}
           <div className="p-4 bg-slate-50/70 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-            <span>Exibindo 4 de 14 membros cadastrados na unidade</span>
-            <div className="flex items-center gap-1">
-              <button className="px-2.5 py-1 rounded border border-slate-200 bg-white text-slate-400 cursor-not-allowed">
-                Anterior
-              </button>
-              <span className="px-2.5 py-1 rounded bg-teal-600 text-white font-semibold">1</span>
-              <button
-                onClick={() => onShowToast('Página 2 em auditoria')}
-                className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer"
-              >
-                2
-              </button>
-              <button
-                onClick={() => onShowToast('Página 2 em auditoria')}
-                className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer"
-              >
-                Próximo
-              </button>
-            </div>
+            <span>Exibindo {filteredProfessionals.length} de {equipe.total} membro{equipe.total === 1 ? '' : 's'} cadastrado{equipe.total === 1 ? '' : 's'}</span>
           </div>
         </section>
       )}
@@ -476,7 +477,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
                   </div>
                   <div className="truncate">
                     <span className="text-xs font-semibold text-slate-800 block truncate">
-                      logo-clinica-sao-rafael.svg
+                      logo-{clinicConfig.subdomain.split('.')[0]}.svg
                     </span>
                     <span className="text-[11px] text-slate-400">Formato SVG Vetorial • Fundo Transparente</span>
                   </div>
@@ -636,7 +637,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
                       Dra. Isabella Silva • CRM 142.890
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-medium">Competência: Out/2024</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Competência: {new Date().toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</span>
                 </div>
 
                 <div className="space-y-1 text-xs">

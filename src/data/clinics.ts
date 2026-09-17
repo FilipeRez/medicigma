@@ -31,9 +31,7 @@ function buildHistory(seed: number, professionals: Professional[]): Transaction[
 
   const medicos = professionals.filter((p) => p.repassePercent);
   const receitas = [
-    { title: 'Consultas particulares do mês', category: 'Consulta Particular', method: 'Pix' as const },
     { title: 'Lote TISS consolidado', category: 'Convênio TISS', method: 'TISS' as const },
-    { title: 'Exames e procedimentos', category: 'Exame Diagnóstico', method: 'Cartão' as const },
   ];
   const despesas = [
     { title: 'Folha e encargos', category: 'Pessoal', method: 'Boleto' as const },
@@ -48,8 +46,8 @@ function buildHistory(seed: number, professionals: Professional[]): Transaction[
   const corrente = (mes: string) => mes === meses[meses.length - 1];
 
   meses.forEach((mes, mi) => {
-    const diasReceita = corrente(mes) ? [4, 9, 14] : [8, 15, 22];
-    const diasDespesa = corrente(mes) ? [2, 5, 8, 11] : [5, 11, 17, 23];
+    const diasReceita = corrente(mes) ? [1] : [8];
+    const diasDespesa = corrente(mes) ? [1, 2, 3, 4] : [5, 11, 17, 23];
     receitas.forEach((r, ri) => {
       const prof = medicos[(mi + ri) % Math.max(medicos.length, 1)];
       out.push({
@@ -87,6 +85,60 @@ function buildHistory(seed: number, professionals: Professional[]): Transaction[
   return out;
 }
 
+/**
+ * Atendimentos do dia a dia, para trás a partir de hoje. Alimenta o gráfico diário
+ * do painel e dá volume parelho a todos os meses — quando só o mês corrente tinha
+ * atendimentos, a comparação mensal acusava um crescimento que não existia.
+ */
+function buildDiasRecentes(seed: number, professionals: Professional[]): Transaction[] {
+  let state = seed * 7919;
+  const rand = () => {
+    state = (state * 1103515245 + 12345) % 2147483648;
+    return state / 2147483648;
+  };
+
+  const medicos = professionals.filter((p) => p.repassePercent);
+  if (medicos.length === 0) return [];
+
+  const tipos = [
+    { title: 'Consulta particular', category: 'Consulta Particular', method: 'Pix' as const },
+    { title: 'Retorno clínico', category: 'Consulta Particular', method: 'Cartão' as const },
+    { title: 'Exame com laudo', category: 'Exame Diagnóstico', method: 'Cartão' as const },
+  ];
+
+  const out: Transaction[] = [];
+  const hoje = new Date();
+
+  for (let i = 0; i < 150; i++) {
+    const dia = new Date(hoje);
+    dia.setDate(dia.getDate() - i);
+    if (dia.getDay() === 0) continue; // domingo a clínica não atende
+
+    const quantos = dia.getDay() === 6 ? 1 : 2; // sábado é meio expediente
+    for (let n = 0; n < quantos; n++) {
+      const tipo = tipos[Math.floor(rand() * tipos.length)];
+      const prof = medicos[Math.floor(rand() * medicos.length)];
+      const iso = `${dia.getFullYear()}-${String(dia.getMonth() + 1).padStart(2, '0')}-${String(dia.getDate()).padStart(2, '0')}`;
+      out.push({
+        id: `d-${seed}-${i}-${n}`,
+        title: tipo.title,
+        subtitle: `${prof.name} • ${prof.specialty}`,
+        category: tipo.category,
+        type: 'receita',
+        amount: Math.round((320 + rand() * 880) * 100) / 100,
+        date: dia.toLocaleDateString('pt-BR'),
+        isoDate: iso,
+        status: 'Liquidado',
+        method: tipo.method,
+        badgeLabel: 'Liquidado',
+        professionalId: prof.id,
+      });
+    }
+  }
+
+  return out;
+}
+
 const CLINICA_CARDIO: Clinic = {
   id: 'cardio-vida',
   shortName: 'Cardio Vida',
@@ -94,7 +146,11 @@ const CLINICA_CARDIO: Clinic = {
   config: INITIAL_CLINIC_CONFIG,
   professionals: INITIAL_PROFESSIONALS,
   patients: INITIAL_PATIENTS,
-  transactions: [...INITIAL_TRANSACTIONS, ...buildHistory(101, INITIAL_PROFESSIONALS)],
+  transactions: [
+    ...INITIAL_TRANSACTIONS,
+    ...buildDiasRecentes(101, INITIAL_PROFESSIONALS),
+    ...buildHistory(101, INITIAL_PROFESSIONALS),
+  ],
 };
 
 const ORTO_PROFESSIONALS: Professional[] = [
@@ -386,8 +442,16 @@ const BEM_ESTAR_DESTAQUE: Transaction[] = [
   },
 ];
 
-CLINICA_ORTO.transactions = [...ORTO_DESTAQUE, ...buildHistory(202, ORTO_PROFESSIONALS)];
-CLINICA_BEM_ESTAR.transactions = [...BEM_ESTAR_DESTAQUE, ...buildHistory(303, BEM_ESTAR_PROFESSIONALS)];
+CLINICA_ORTO.transactions = [
+  ...ORTO_DESTAQUE,
+  ...buildDiasRecentes(202, ORTO_PROFESSIONALS),
+  ...buildHistory(202, ORTO_PROFESSIONALS),
+];
+CLINICA_BEM_ESTAR.transactions = [
+  ...BEM_ESTAR_DESTAQUE,
+  ...buildDiasRecentes(303, BEM_ESTAR_PROFESSIONALS),
+  ...buildHistory(303, BEM_ESTAR_PROFESSIONALS),
+];
 
 export const CLINICS: Clinic[] = [CLINICA_CARDIO, CLINICA_ORTO, CLINICA_BEM_ESTAR];
 
