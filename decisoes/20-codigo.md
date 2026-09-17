@@ -2,44 +2,70 @@
 
 Carregue com `/medicigma codigo`.
 
-Tudo abaixo foi **verificado no código em 15–16/09/2026**, não deduzido da interface. Serve
-para não perder tempo investigando de novo o que já se sabe que não existe.
+Tudo abaixo foi **verificado no código**, não deduzido da interface. Serve para não perder
+tempo investigando de novo o que já se sabe que não existe. Última verificação: **17/09/2026**.
 
 ---
 
 ## O que existe de verdade
 
-- 23 arquivos, ~5 mil linhas. `tsc --noEmit` e `vite build` passaram **sem erro**.
-- Roteamento e estado global em `src/App.tsx`.
-- Quatro telas reais: `DashboardView`, `FinancesView`, `GovernanceView`, `PatientsView`.
-- Layout duplo (web em `/admin`, mobile em `/app`) funcionando de verdade.
+- 29 arquivos em `src/`. `tsc --noEmit` e `vite build` passam **sem erro**.
+- Roteamento em `src/App.tsx`; estado global e sessão em `src/state/AppState.tsx`.
+- **Login simulado com três perfis** (`src/pages/LoginPage.tsx`): escritório, clínica e
+  médico. Rota protegida: sem sessão, `/admin` e `/app` redirecionam para `/login`.
+- **Multi-tenant de escritório contábil** (`src/data/clinics.ts`): três clínicas-clientes
+  fictícias com base própria. O usuário do escritório alterna entre elas pelo cabeçalho; os
+  demais ficam presos à sua. O médico só enxerga a produção dele — o recorte acontece em
+  `AppState.tsx`, no `useMemo` de `data`.
+- **Persistência em `localStorage`**, uma chave por clínica (`medicigma:data:<id>`). F5 não
+  apaga mais o que foi lançado. Há "restaurar dados de demonstração" no menu do perfil.
+- **Tela Produção & Repasses** (`RepassesView.tsx`): calcula produção, glosa fora da base,
+  percentual por profissional, repasse e retenção da clínica. "Marcar pago" cria um
+  lançamento de despesa de verdade; exporta CSV.
+- **Tela Relatórios & DRE** (`RelatoriosView.tsx`): série mensal de receitas × despesas em
+  SVG puro, despesa por categoria, demonstrativo e exportação. Sem biblioteca de gráficos.
+  Par de cores validado para daltonismo (ΔE 13,6 em deuteranopia).
+- **Dashboard lê os lançamentos** — os números fixos saíram. Os totais batem com a tela de
+  Relatórios.
+- **PWA instalável**: `public/manifest.webmanifest`, ícones em `public/icons/`, service
+  worker em `public/sw.js` (rede primeiro na navegação, cache primeiro nos arquivos com
+  hash) e `vercel.json` com o fallback de rota da SPA.
+- Layout duplo funcionando: web em `/admin`, mobile em `/app`. No celular o menu lateral é
+  uma gaveta — antes cobria a tela inteira.
 
 ## O que NÃO existe — não investigar de novo
 
 | Achado | Onde |
 |---|---|
-| **Sem backend e sem banco.** Todo dado vem de `mockData.ts` e vive só em memória — **F5 apaga tudo** | `src/data/mockData.ts` |
-| **Ações simuladas.** "Exportar XML TISS", "Baixar DMED com assinatura digital" e "Recurso de glosa protocolado" só exibem uma mensagem | `Modals.tsx:409`, `Modals.tsx:701` |
-| **Recurso de glosa mostra sempre R$ 720,00**, qualquer que seja a transação | `App.tsx:107` |
-| **Abas "Repasses" e "Relatórios" estão no menu e não têm tela** — clicar deixa a área principal vazia | `Sidebar.tsx` |
-| **Não há login.** Os perfis de permissão (sócio, médico, recepção) são apenas visuais | — |
-| **Gemini declarado e não usado.** `@google/genai` e `express` estão no `package.json` e não aparecem em nenhum import | `package.json` |
-| **Imagens são links temporários do Google** (`lh3.googleusercontent.com/aida…`) e **expiram** | componentes de UI |
-| **"Dados sincronizados em tempo real"** na tela inicial não tem nada por trás | `LandingSelection.tsx` |
+| **Sem backend e sem banco.** O dado vive no `localStorage` do navegador: não sai de um aparelho para o outro e some se o usuário limpar os dados do site | `src/state/AppState.tsx` |
+| **O login não é segurança.** Usuário e senha estão no código e a checagem roda no navegador. Serve para demonstrar o isolamento, não para proteger nada | `src/data/clinics.ts` |
+| **Ações simuladas.** "Exportar XML TISS", "Baixar DMED com assinatura digital" e "Recurso de glosa protocolado" só exibem uma mensagem | `Modals.tsx` |
+| **Não há integração com convênio, Receita, banco ou WhatsApp** — o botão de cobrança só abre o `wa.me` com um texto pronto | `App.tsx` |
+| **Os dados são fictícios**, inclusive os históricos, gerados por semente determinística em `buildHistory` | `src/data/clinics.ts` |
 
 ## Dívidas conhecidas
 
-1. **Dois lockfiles.** `bun.lock` (do AI Studio, commitado) e `package-lock.json` (gerado
-   aqui, **untracked**). Escolher um gerenciador antes do próximo `install`.
-2. **Imagens que expiram.** Trocar por asset local antes de qualquer demonstração agendada —
-   é o tipo de falha que aparece no pior momento.
-3. **`metadata.json` declara `MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API`**, que é um resquício
-   do AI Studio. Se a IA não entrar no escopo, remover junto com as duas dependências mortas.
+1. **`DashboardView.tsx` ainda tem trechos de maquete** abaixo dos indicadores — a
+   concentração por operadora e a lista de vencimentos não vêm dos lançamentos.
+2. **O bundle está em ~455 KB** (123 KB comprimido). Aceitável para a prévia; se virar
+   produto, dividir por rota.
+3. **Sem teste automatizado.** A verificação hoje é `tsc` mais navegação manual.
+
+## Caminhos de deploy (a escolha está pendente)
+
+A conta da Vercel é **Hobby, gratuita**. Nenhum dos dois caminhos está pronto:
+
+- **Integração GitHub** (recomendado): instalar o app da Vercel em
+  `https://github.com/apps/vercel` e dar acesso ao repo `FilipeRez/medicigma`. Depois disso o
+  projeto se liga em segundos e **todo push republica sozinho**.
+- **CLI**: `npx vercel login` num terminal interativo e depois `npx vercel --prod`. Resolve
+  uma vez, mas não dá deploy contínuo.
 
 ## Histórico
 
 | Data | O que |
 |---|---|
-| 15/09 | Exportado do AI Studio. O `Save to GitHub` falhou por conflito com o "Initial commit" já existente; o caminho que funcionou foi o ZIP |
+| 15/09 | Exportado do AI Studio. O `Save to GitHub` falhou por conflito com o "Initial commit"; o caminho que funcionou foi o ZIP |
 | 15/09 | `feat: initialize MedFinance Clinical Suite project` — o código real entrou aqui |
-| 15/09 | Playwright criou uma pasta `.playwright-mcp` dentro do projeto; conferir se saiu ou está no `.gitignore` |
+| 17/09 | `chore: resolve pendencias tecnicas do prototipo` — imagens locais, npm eleito, dependências mortas removidas |
+| 17/09 | `feat: multi-tenant de escritorio contabil, login, repasses, DRE e PWA` |

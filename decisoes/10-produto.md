@@ -2,10 +2,9 @@
 
 Carregue com `/medicigma produto`.
 
-> ⚠️ **Este projeto ainda não tem decisão de produto tomada.** O que existe é um protótipo
-> visual e seis perguntas abertas. Não trate nenhuma escolha abaixo como definida, e não
-> deduza a resposta a partir do que a tela mostra — a tela foi gerada por IA a partir de um
-> prompt, não de uma decisão do Filipe.
+> ✅ **As duas perguntas que travavam tudo foram respondidas em 17/09/2026** (objetivo e
+> usuário principal). As outras quatro seguem abertas. Continue não deduzindo resposta a
+> partir do que a tela mostra: a tela foi gerada por IA a partir de um prompt.
 
 ---
 
@@ -26,15 +25,21 @@ Funcionalidades que aparecem na interface:
 O domínio está bem entendido e os termos do setor estão corretos. Isso é o ativo real do
 protótipo — mais do que o código.
 
-## As seis perguntas em aberto (15/09/2026)
+## Respondidas em 17/09/2026
 
-A conversa parou exatamente aqui. **As duas primeiras definem o resto.**
+1. **Qual é o objetivo? → Validar a ideia antes de construir.** A prévia é instrumento de
+   pesquisa: medir a reação de um colega de trabalho e de clínicas-clientes. Nada de backend
+   antes do retorno.
+2. **Quem é o usuário principal? → O escritório contábil.** O Filipe é o escritório; as
+   clínicas são clientes dele. Como são vários clientes, cada um precisa de usuário e senha
+   próprios, e os dados de um não podem aparecer para o outro.
 
-1. **Qual é o objetivo?** Mostrar para clínicas e validar, virar SaaS de verdade, ou atender
-   um cliente específico? Muda tudo o que vem depois.
-2. **Quem é o usuário principal?** A tela inicial fala em "contabilidade" e em "médico" — são
-   **dois produtos diferentes**: um escritório contábil que atende várias clínicas, ou a
-   própria clínica. Define o modelo multi-tenant.
+   **Consequência para a arquitetura:** multi-tenant com o **escritório como tenant raiz** e
+   as clínicas como sub-tenants. No dia do backend, a chave de isolamento (RLS no Supabase)
+   é a clínica, e o usuário do escritório é o único que enxerga mais de uma. O protótipo já
+   está montado assim, em `src/data/clinics.ts` e `src/state/AppState.tsx`.
+
+## As quatro perguntas que seguem abertas
 3. **Escopo do MVP.** TISS de verdade (XML no padrão ANS, com versões e validação) e
    assinatura digital de DMED são trabalhosos. MVP realista: login, pacientes, lançamentos,
    repasses e recibo em PDF — TISS depois.
@@ -44,6 +49,12 @@ A conversa parou exatamente aqui. **As duas primeiras definem o resto.**
    o padrão (auth, Postgres com RLS por clínica) é o caminho natural.
 6. **Relação com o `financas-casal`.** Boa parte da lógica se sobrepõe — lançamentos,
    categorias, multi-tenant. Decidir se compartilham base ou seguem separados.
+
+## O que a prévia de 17/09 já mostra
+
+Três perfis de login (escritório, clínica, médico), três clínicas-clientes fictícias com
+bases isoladas, repasses calculados sobre a produção e DRE com série mensal. O que ainda é
+encenação está listado em `20-codigo.md` — **nunca apresentar como pronto**.
 
 ## Conexões com outros mundos do Filipe
 
