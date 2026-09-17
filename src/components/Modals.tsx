@@ -516,8 +516,10 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({
     const num = parseFloat(amount.replace(',', '.'));
     if (isNaN(num) || num <= 0) return;
 
+    const hoje = new Date();
     const newTx: Transaction = {
       id: 'tx-' + Date.now(),
+      isoDate: hoje.toISOString().slice(0, 10),
       title,
       subtitle: subtitle || 'Lançamento manual validado',
       category,

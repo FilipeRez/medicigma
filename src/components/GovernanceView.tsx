@@ -613,7 +613,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({
                 />
                 <div className="text-right">
                   <span className="text-[11px] font-bold text-slate-900 block leading-tight">
-                    {clinicName.trim() || 'Clínica São Rafael'}
+                    {clinicName.trim() || 'Clínica Cardio Vida'}
                   </span>
                   <span className="text-[9px] text-slate-400 block">{clinicConfig?.cnpj || '00.000.000/0001-00'}</span>
                 </div>

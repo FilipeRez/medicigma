@@ -16,10 +16,10 @@ export const DIRECT_IMAGES = {
 };
 
 export const INITIAL_CLINIC_CONFIG: ClinicConfig = {
-  name: 'Clínica São Rafael - Cardiologia & Saúde',
-  unit: 'Unidade Jardins • Filial #04',
+  name: 'Clínica Cardio Vida',
+  unit: 'Unidade Centro • Matriz',
   cnpj: '18.239.102/0001-44',
-  subdomain: 'portal.saorafael.med.br',
+  subdomain: 'cardiovida.medicigma.app',
   logoUrl: DIRECT_IMAGES.logoMedFinance,
   primaryColor: '#0D9488',
   primaryColorName: 'Teal Clínico (Padrão)',
@@ -29,8 +29,9 @@ export const INITIAL_CLINIC_CONFIG: ClinicConfig = {
 export const INITIAL_PROFESSIONALS: Professional[] = [
   {
     id: 'prof-1',
+    repassePercent: 70,
     name: 'Dra. Isabella Silva',
-    email: 'isabella.silva@saorafael.med.br',
+    email: 'isabella.silva@cardiovida.com.br',
     role: 'Médico Associado',
     specialty: 'Cardiologia Clínica',
     crm: '142.890-SP',
@@ -42,8 +43,9 @@ export const INITIAL_PROFESSIONALS: Professional[] = [
   },
   {
     id: 'prof-2',
+    repassePercent: 60,
     name: 'Dr. Marcos Vinicius',
-    email: 'marcos.vinicius@saorafael.med.br',
+    email: 'marcos.vinicius@cardiovida.com.br',
     role: 'Sócio Administrador',
     specialty: 'Clínica Médica & Gestão',
     crm: '98.412-SP',
@@ -57,7 +59,7 @@ export const INITIAL_PROFESSIONALS: Professional[] = [
   {
     id: 'prof-3',
     name: 'Camila Siqueira',
-    email: 'camila.faturamento@saorafael.med.br',
+    email: 'camila.faturamento@cardiovida.com.br',
     role: 'Recepção / Faturamento',
     specialty: 'Operação & POS • Recibos e Agenda',
     financialScope: 'Lançamento de Contas e Recibos',
@@ -69,8 +71,9 @@ export const INITIAL_PROFESSIONALS: Professional[] = [
   },
   {
     id: 'prof-4',
+    repassePercent: 65,
     name: 'Dr. Roberto Fontes',
-    email: 'roberto.fontes@saorafael.med.br',
+    email: 'roberto.fontes@cardiovida.com.br',
     role: 'Médico Credenciado',
     specialty: 'Dermatologia Clínica',
     crm: '115.304-SP',
@@ -79,7 +82,7 @@ export const INITIAL_PROFESSIONALS: Professional[] = [
     avatarUrl: DIRECT_IMAGES.doctorRoberto,
     initials: 'RF',
     color: 'teal',
-    lastAudit: '12/10/2024',
+    lastAudit: '12/10/2026',
   },
 ];
 
@@ -93,12 +96,12 @@ export const INITIAL_PATIENTS: Patient[] = [
     statusBadge: 'Parcela 2/3 (R$ 500)',
     statusType: 'pending',
     ltv: 2850.0,
-    lastDate: '14/10/2024',
+    lastDate: '14/10/2026',
     avatarUrl: DIRECT_IMAGES.patientBeatriz,
     procedures: [
       {
         title: 'Consulta Especializada + Bioimpedância',
-        detail: 'Guia TISS #90218 • 14/10/2024',
+        detail: 'Guia TISS #90218 • 14/10/2026',
         value: 850.0,
       },
       {
@@ -118,17 +121,17 @@ export const INITIAL_PATIENTS: Patient[] = [
     statusBadge: 'Em Dia',
     statusType: 'settled',
     ltv: 5400.0,
-    lastDate: '22/10/2024',
+    lastDate: '22/10/2026',
     avatarUrl: DIRECT_IMAGES.patientMarcos,
     procedures: [
       {
         title: 'Check-up Executivo VIP',
-        detail: 'Pix Instantâneo • 22/10/2024',
+        detail: 'Pix Instantâneo • 22/10/2026',
         value: 2400.0,
       },
       {
         title: 'Avaliação Cardíaca e Ergometria',
-        detail: 'Cartão de Crédito 1x • 10/08/2024',
+        detail: 'Cartão de Crédito 1x • 10/08/2026',
         value: 3000.0,
       },
     ],
@@ -142,7 +145,7 @@ export const INITIAL_PATIENTS: Patient[] = [
     statusBadge: 'Glosa R$ 350,00',
     statusType: 'glosa',
     ltv: 1150.0,
-    lastDate: '18/10/2024',
+    lastDate: '18/10/2026',
     avatarUrl: DIRECT_IMAGES.patientClaudia,
     glosaDetail: {
       code: '1302',
@@ -159,7 +162,7 @@ export const INITIAL_PATIENTS: Patient[] = [
       },
       {
         title: 'Exames Bioquímicos Preliminares',
-        detail: 'Liquidado pela operadora • 02/09/2024',
+        detail: 'Liquidado pela operadora • 02/09/2026',
         value: 800.0,
       },
     ],
@@ -173,17 +176,17 @@ export const INITIAL_PATIENTS: Patient[] = [
     statusBadge: 'Em Dia',
     statusType: 'settled',
     ltv: 820.0,
-    lastDate: '05/10/2024',
+    lastDate: '05/10/2026',
     avatarUrl: DIRECT_IMAGES.patientJulio,
     procedures: [
       {
         title: 'Consulta Retorno 30 dias',
-        detail: 'Lote #8812 • 05/10/2024',
+        detail: 'Lote #8812 • 05/10/2026',
         value: 410.0,
       },
       {
         title: 'Coparticipação Ambulatorial',
-        detail: 'Quitada via POS • 05/10/2024',
+        detail: 'Quitada via POS • 05/10/2026',
         value: 410.0,
       },
     ],
@@ -193,6 +196,8 @@ export const INITIAL_PATIENTS: Patient[] = [
 export const INITIAL_TRANSACTIONS: Transaction[] = [
   {
     id: 'tx-1',
+    isoDate: '2026-09-17',
+    professionalId: 'prof-1',
     title: 'Consulta Dra. Isabella',
     subtitle: 'Carlos Eduardo Lima • CPF ***.820.108-**',
     category: 'Consulta Particular',
@@ -205,12 +210,14 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-2',
+    isoDate: '2026-09-30',
+    professionalId: 'prof-1',
     title: 'Guia TISS Lote #1042',
     subtitle: 'Bradesco Saúde (14 atendimentos)',
     category: 'Convênio TISS',
     type: 'receita',
     amount: 2380.0,
-    date: 'Prev. 28/11/24',
+    date: 'Prev. 30/09/2026',
     status: 'Pendente',
     method: 'TISS',
     xmlTag: true,
@@ -218,18 +225,21 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-3',
+    isoDate: '2026-10-05',
+    professionalId: 'prof-4',
     title: 'Repasse Produção (70/30)',
     subtitle: 'Dr. Fernando Costa • 38 Cons. + 12 Laudos',
     category: 'Repasse Corpo Clínico',
     type: 'despesa',
     amount: -8400.0,
-    date: 'Vence 05/12/24',
+    date: 'Vence 05/10/2026',
     status: 'Pendente',
     method: 'Repasse',
     badgeLabel: 'Auditoria OK',
   },
   {
     id: 'tx-4',
+    isoDate: '2026-09-16',
     title: 'Manutenção Ecocardiógrafo',
     subtitle: 'MedTech Equipamentos Diagnósticos',
     category: 'Manutenção & Equipamentos',
@@ -242,6 +252,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-5',
+    isoDate: '2026-09-14',
+    professionalId: 'prof-1',
     title: 'Glosa Recursal Lote #988',
     subtitle: 'SulAmérica • Ausência de assinatura física',
     category: 'Recurso TISS',
@@ -256,6 +268,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-6',
+    isoDate: '2026-09-17',
     title: 'Ecoview Manutenção',
     subtitle: 'Calibração Ultrassom Doppler',
     category: 'Equipamentos',
@@ -268,6 +281,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-7',
+    isoDate: '2026-09-17',
+    professionalId: 'prof-4',
     title: 'Rodrigo Cavalcante',
     subtitle: 'Consulta Particular Cardiologia',
     category: 'Consulta Particular',
@@ -280,6 +295,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-8',
+    isoDate: '2026-09-16',
+    professionalId: 'prof-1',
     title: 'Mariana Souza',
     subtitle: 'Ecocardiograma com Laudo',
     category: 'Exame Diagnóstico',
@@ -293,8 +310,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
 ];
 
 export const CLINIC_UNITS = [
-  { id: 'jardins', name: 'São Rafael • Jardins', code: 'Filial #04', isCurrent: true },
-  { id: 'matriz', name: 'São Rafael • Matriz Hospitalar', code: 'Sede #01', isCurrent: false },
-  { id: 'itaim', name: 'São Rafael • Itaim Bibi', code: 'Filial #02', isCurrent: false },
-  { id: 'paulista', name: 'São Rafael • Paulista Concept', code: 'Filial #03', isCurrent: false },
+  { id: 'jardins', name: 'Cardio Vida • Centro', code: 'Filial #04', isCurrent: true },
+  { id: 'matriz', name: 'Cardio Vida • Zona Sul', code: 'Sede #01', isCurrent: false },
+  { id: 'itaim', name: 'Cardio Vida • Norte', code: 'Filial #02', isCurrent: false },
+  { id: 'paulista', name: 'Cardio Vida • Litoral', code: 'Filial #03', isCurrent: false },
 ];

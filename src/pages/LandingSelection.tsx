@@ -1,77 +1,88 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Smartphone, Monitor, ArrowRight, Building2, Stethoscope } from 'lucide-react';
+import { Smartphone, Monitor, ArrowRight, Building2, Stethoscope, ShieldCheck } from 'lucide-react';
 import { DIRECT_IMAGES } from '../data/mockData';
+import { ESCRITORIO } from '../data/clinics';
+import { useApp } from '../state/AppState';
 
 export const LandingSelection: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useApp();
+
+  const abrir = (portal: 'admin' | 'app') =>
+    navigate(user ? `/${portal}` : `/login?portal=${portal}`);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-slate-900 font-sans selection:bg-teal-100 selection:text-teal-900">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-5 sm:p-6 text-slate-900 font-sans">
       <div className="max-w-4xl w-full">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <img 
-            src={DIRECT_IMAGES.logoMedFinance} 
-            alt="MedFinance Logo" 
-            className="h-12 w-auto mx-auto mb-6 drop-shadow-sm" 
-            referrerPolicy="no-referrer"
+        <div className="text-center mb-8 sm:mb-12">
+          <img
+            src={DIRECT_IMAGES.logoMedFinance}
+            alt="MedFinance"
+            className="h-10 sm:h-12 w-auto mx-auto mb-5 drop-shadow-sm"
           />
-          <h1 className="text-3xl font-display font-bold text-slate-900 mb-3 tracking-tight">
-            Ecossistema de Gestão Clínica
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 mb-3 tracking-tight">
+            Gestão financeira de clínicas
           </h1>
-          <p className="text-slate-500 text-lg max-w-xl mx-auto leading-relaxed">
-            Selecione a plataforma desejada. Os dados são sincronizados em tempo real entre o portal web da contabilidade e o aplicativo do médico.
+          <p className="text-slate-500 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+            Um escritório contábil, várias clínicas-clientes — cada uma com base de dados
+            separada e acesso próprio.
           </p>
         </div>
 
-        {/* Portals */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Web Admin Portal */}
-          <div 
-            onClick={() => navigate('/admin')}
-            className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 p-8 cursor-pointer overflow-hidden flex flex-col items-center text-center hover:border-blue-200"
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+          <button
+            onClick={() => abrir('admin')}
+            className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 p-6 sm:p-8 cursor-pointer overflow-hidden flex flex-col items-center text-center hover:border-blue-200"
           >
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-80 group-hover:opacity-100 transition-opacity" />
-            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <Monitor className="w-8 h-8" />
-            </div>
-            <h2 className="text-xl font-bold mb-2 text-slate-900 group-hover:text-blue-700 transition-colors">
-              Portal Contabilidade (Web)
+            <span className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-80" />
+            <span className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+              <Monitor className="w-7 h-7 sm:w-8 sm:h-8" />
+            </span>
+            <h2 className="text-lg sm:text-xl font-bold mb-2 text-slate-900 group-hover:text-blue-700 transition-colors">
+              Portal da Contabilidade
             </h2>
-            <p className="text-slate-500 mb-8 text-sm">
-              Visão consolidada da clínica, emissão de Dmed, recursos de glosas, controle de permissionamento e faturamento de toda a rede.
+            <p className="text-slate-500 mb-6 text-sm">
+              Visão por cliente: contas a pagar e receber, pacientes, repasses do corpo clínico,
+              DRE e níveis de acesso.
             </p>
-            <div className="mt-auto flex items-center justify-center gap-2 text-blue-600 font-semibold text-sm bg-blue-50/50 px-4 py-2 rounded-lg group-hover:bg-blue-100 transition-colors">
+            <span className="mt-auto flex items-center justify-center gap-2 text-blue-600 font-semibold text-sm bg-blue-50/60 px-4 py-2 rounded-lg group-hover:bg-blue-100 transition-colors">
               <Building2 className="w-4 h-4" />
-              Acessar Painel Web <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
+              Entrar no painel <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </span>
+          </button>
 
-          {/* Doctor Mobile App */}
-          <div 
-            onClick={() => navigate('/app')}
-            className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 p-8 cursor-pointer overflow-hidden flex flex-col items-center text-center hover:border-teal-200"
+          <button
+            onClick={() => abrir('app')}
+            className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 p-6 sm:p-8 cursor-pointer overflow-hidden flex flex-col items-center text-center hover:border-teal-200"
           >
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-teal-400 to-emerald-500 opacity-80 group-hover:opacity-100 transition-opacity" />
-            <div className="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <Smartphone className="w-8 h-8" />
-            </div>
-            <h2 className="text-xl font-bold mb-2 text-slate-900 group-hover:text-teal-700 transition-colors">
-              App do Médico (Mobile)
+            <span className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-teal-400 to-emerald-500 opacity-80" />
+            <span className="w-14 h-14 sm:w-16 sm:h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+              <Smartphone className="w-7 h-7 sm:w-8 sm:h-8" />
+            </span>
+            <h2 className="text-lg sm:text-xl font-bold mb-2 text-slate-900 group-hover:text-teal-700 transition-colors">
+              App do Médico
             </h2>
-            <p className="text-slate-500 mb-8 text-sm">
-              Interface ágil para o médico anexar recibos, visualizar repasses do dia, emitir receitas e acompanhar a carteira de pacientes.
+            <p className="text-slate-500 mb-6 text-sm">
+              O que o médico vê no celular: a produção dele, os repasses do período e os
+              recibos dos pacientes — só isso.
             </p>
-            <div className="mt-auto flex items-center justify-center gap-2 text-teal-600 font-semibold text-sm bg-teal-50/50 px-4 py-2 rounded-lg group-hover:bg-teal-100 transition-colors">
+            <span className="mt-auto flex items-center justify-center gap-2 text-teal-600 font-semibold text-sm bg-teal-50/60 px-4 py-2 rounded-lg group-hover:bg-teal-100 transition-colors">
               <Stethoscope className="w-4 h-4" />
-              Acessar App Mobile <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
+              Abrir aplicativo <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </span>
+          </button>
         </div>
-        
-        <div className="mt-12 text-center text-xs text-slate-400">
-          Base de dados compartilhada • Multi-plataforma • Arquitetura Responsiva
+
+        <div className="mt-8 sm:mt-10 flex flex-col items-center gap-2 text-center">
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 bg-white border border-slate-200 rounded-full px-3 py-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
+            {ESCRITORIO.responsavel}
+          </span>
+          <p className="text-[11px] text-slate-400 max-w-md leading-relaxed">
+            Demonstração com dados fictícios. Algumas ações (XML do TISS, assinatura digital da
+            DMED, protocolo de glosa) ainda são simuladas.
+          </p>
         </div>
       </div>
     </div>

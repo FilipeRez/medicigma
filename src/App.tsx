@@ -7,7 +7,11 @@ import { DashboardView } from './components/DashboardView';
 import { FinancesView } from './components/FinancesView';
 import { PatientsView } from './components/PatientsView';
 import { GovernanceView } from './components/GovernanceView';
+import { RepassesView } from './components/RepassesView';
+import { RelatoriosView } from './components/RelatoriosView';
 import { LandingSelection } from './pages/LandingSelection';
+import { LoginPage } from './pages/LoginPage';
+import { AppStateProvider, useApp } from './state/AppState';
 import {
   InviteModal,
   EditProfessionalModal,
@@ -18,22 +22,14 @@ import {
   NewPatientModal,
   ActionMenuSheet,
 } from './components/Modals';
-import {
-  INITIAL_CLINIC_CONFIG,
-  INITIAL_PROFESSIONALS,
-  INITIAL_PATIENTS,
-  INITIAL_TRANSACTIONS,
-  DIRECT_IMAGES,
-} from './data/mockData';
-import { TabType, Professional, Patient, Transaction, ClinicConfig } from './types';
-import { Image } from 'lucide-react';
+import { TabType, Professional, Patient, Transaction } from './types';
 
 function AppContent() {
+  const { data, update, user } = useApp();
+  const { config: clinicConfig, professionals, patients, transactions } = data;
+
   const [activeTab, setActiveTab] = useState<TabType>('inicio');
-  const [clinicConfig, setClinicConfig] = useState<ClinicConfig>(INITIAL_CLINIC_CONFIG);
-  const [professionals, setProfessionals] = useState<Professional[]>(INITIAL_PROFESSIONALS);
-  const [patients, setPatients] = useState<Patient[]>(INITIAL_PATIENTS);
-  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Modal States
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -46,7 +42,6 @@ function AppContent() {
   const [isTissOpen, setIsTissOpen] = useState(false);
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
   const [actionMenuTx, setActionMenuTx] = useState<Transaction | null>(null);
-  const [showDirectImagesModal, setShowDirectImagesModal] = useState(false);
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -58,30 +53,31 @@ function AppContent() {
     }, 3200);
   };
 
-  const handleInviteProfessional = (data: Partial<Professional>) => {
+  const handleInviteProfessional = (payload: Partial<Professional>) => {
     const newProf: Professional = {
       id: 'prof-' + Date.now(),
-      name: data.name || 'Novo Médico',
-      email: data.email || 'medico@saorafael.com.br',
-      role: data.role || 'Médico Associado',
-      specialty: data.specialty || 'Clínica Geral',
-      crm: data.crm,
-      financialScope: data.financialScope || 'Apenas Produção Própria - Restrito',
+      name: payload.name || 'Novo Médico',
+      email: payload.email || 'medico@clinica.com.br',
+      role: payload.role || 'Médico Associado',
+      specialty: payload.specialty || 'Clínica Geral',
+      crm: payload.crm,
+      financialScope: payload.financialScope || 'Apenas Produção Própria - Restrito',
       status: 'Ativo',
-      initials: (data.name || 'NM').split(' ').map((n) => n[0]).slice(0, 2).join(''),
+      initials: (payload.name || 'NM').split(' ').map((n) => n[0]).slice(0, 2).join(''),
       color: 'teal',
+      repassePercent: 70,
     };
-    setProfessionals([newProf, ...professionals]);
-    showToast(`Convite seguro enviado com sucesso para ${data.email}`);
+    update({ professionals: [newProf, ...professionals] });
+    showToast(`Convite seguro enviado com sucesso para ${payload.email}`);
   };
 
   const handleUpdateProfessional = (updated: Professional) => {
-    setProfessionals(professionals.map((p) => (p.id === updated.id ? updated : p)));
+    update({ professionals: professionals.map((p) => (p.id === updated.id ? updated : p)) });
     showToast(`Permissões de ${updated.name} atualizadas.`);
   };
 
   const handleAddTransaction = (newTx: Transaction) => {
-    setTransactions([newTx, ...transactions]);
+    update({ transactions: [newTx, ...transactions] });
     showToast(
       `${newTx.type === 'receita' ? 'Receita' : 'Despesa'} de ${new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -91,7 +87,7 @@ function AppContent() {
   };
 
   const handleAddPatient = (newPat: Patient) => {
-    setPatients([newPat, ...patients]);
+    update({ patients: [newPat, ...patients] });
     showToast(`Paciente ${newPat.name} cadastrado com prontuário ${newPat.recordNumber}`);
   };
 
@@ -104,38 +100,42 @@ function AppContent() {
   };
 
   const handleRecursoGlosa = (tx: Transaction) => {
-    showToast(`Recurso da glosa de R$ 720,00 protocolado junto à operadora TISS.`);
+    const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+      Math.abs(tx.amount)
+    );
+    showToast(`Recurso da glosa de ${valor} protocolado junto à operadora TISS.`);
   };
 
   const location = useLocation();
   const isWebAdmin = location.pathname.startsWith('/admin');
   const isMobileApp = location.pathname.startsWith('/app');
-  
-  if (location.pathname === '/') {
-    return <LandingSelection />;
-  }
+  const canManage = user?.role !== 'medico';
 
   return (
-    <div className={`min-h-screen bg-slate-100 text-slate-900 flex flex-col antialiased selection:bg-teal-100 selection:text-teal-900 ${isMobileApp ? 'max-w-md mx-auto shadow-2xl relative bg-slate-50' : ''}`}>
-      {/* Admin Web Sidebar (Only on /admin) */}
+    <div
+      className={`min-h-screen bg-slate-100 text-slate-900 flex flex-col antialiased selection:bg-teal-100 selection:text-teal-900 ${
+        isMobileApp ? 'max-w-md mx-auto shadow-2xl relative bg-slate-50' : ''
+      }`}
+    >
       {isWebAdmin && (
         <Sidebar
           activeTab={activeTab}
-          onSelectTab={setActiveTab}
+          onSelectTab={(tab) => {
+            setActiveTab(tab);
+            setIsSidebarOpen(false);
+          }}
           clinicConfig={clinicConfig}
-          clinicName={clinicConfig.name}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          canManage={canManage}
         />
       )}
 
-      {/* Main Layout Container */}
-      <div className={`flex-1 flex flex-col transition-all ${isWebAdmin ? 'md:pl-64' : ''}`}>
-        
-        {/* Header - customized for platform */}
+      <div className={`flex-1 flex flex-col transition-all ${isWebAdmin ? 'md:pl-[260px]' : ''}`}>
         <Header
-          clinicConfig={clinicConfig}
-          onOpenDirectImages={() => setShowDirectImagesModal(true)}
           onShowToast={showToast}
           deviceMode={isMobileApp ? 'mobile' : 'desktop'}
+          onOpenMenu={isWebAdmin ? () => setIsSidebarOpen(true) : undefined}
         />
 
         <main className={`flex-1 ${isMobileApp ? 'p-3 pb-24' : 'p-3.5 sm:p-5 lg:p-6 pb-24 md:pb-8'}`}>
@@ -180,11 +180,15 @@ function AppContent() {
             />
           )}
 
-          {(activeTab === 'acessos' || activeTab === 'whitelabel') && isWebAdmin && (
+          {activeTab === 'repasses' && <RepassesView onShowToast={showToast} />}
+
+          {activeTab === 'relatorios' && <RelatoriosView onShowToast={showToast} />}
+
+          {(activeTab === 'acessos' || activeTab === 'whitelabel') && canManage && (
             <GovernanceView
               professionals={professionals}
               clinicConfig={clinicConfig}
-              onUpdateClinicConfig={setClinicConfig}
+              onUpdateClinicConfig={(config) => update({ config })}
               onOpenInviteModal={() => setIsInviteOpen(true)}
               onOpenEditProfessional={(prof) => setEditingProfessional(prof)}
               onOpenAuditLog={(prof) => setAuditLogProfessional(prof)}
@@ -194,7 +198,6 @@ function AppContent() {
         </main>
       </div>
 
-      {/* Mobile Bottom Nav (Only on /app) */}
       {isMobileApp && (
         <BottomNav
           activeTab={activeTab}
@@ -216,39 +219,6 @@ function AppContent() {
       <NewPatientModal isOpen={isNewPatientOpen} onClose={() => setIsNewPatientOpen(false)} onAddPatient={handleAddPatient} />
       <ActionMenuSheet transaction={actionMenuTx} onClose={() => setActionMenuTx(null)} onActionSelect={(action) => { showToast(`Ação executada: ${action}`); setActionMenuTx(null); }} />
 
-      {/* Direct Links Modal */}
-      {showDirectImagesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in duration-150 text-xs">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
-                  <Image className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 font-display">Links Diretos das Imagens HTML</h3>
-                </div>
-              </div>
-              <button onClick={() => setShowDirectImagesModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-            <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-              {Object.entries(DIRECT_IMAGES).map(([key, url]) => (
-                <div key={key} className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <img src={url} alt={key} className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-slate-300" referrerPolicy="no-referrer" />
-                    <div className="min-w-0">
-                      <span className="font-semibold text-slate-900 block truncate">{key}</span>
-                      <span className="text-[10px] text-slate-400 font-mono block truncate">{url}</span>
-                    </div>
-                  </div>
-                  <button onClick={() => { navigator.clipboard.writeText(url); showToast(`Link de ${key} copiado!`); }} className="px-2.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-teal-700 font-semibold shrink-0 cursor-pointer">Copiar URL</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {toastMessage && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white px-4 py-2.5 rounded-full text-xs font-medium shadow-xl flex items-center gap-2 border border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-150">
           <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
@@ -259,13 +229,42 @@ function AppContent() {
   );
 }
 
+/** Sem sessão nenhum portal abre — é justamente o que a demonstração precisa mostrar. */
+const RequireAuth: React.FC<{ portal: 'admin' | 'app'; children: React.ReactNode }> = ({
+  portal,
+  children,
+}) => {
+  const { user } = useApp();
+  if (!user) return <Navigate to={`/login?portal=${portal}`} replace />;
+  return <>{children}</>;
+};
+
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/*" element={<AppContent />} />
-      </Routes>
+      <AppStateProvider>
+        <Routes>
+          <Route path="/" element={<LandingSelection />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/admin/*"
+            element={
+              <RequireAuth portal="admin">
+                <AppContent />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/app/*"
+            element={
+              <RequireAuth portal="app">
+                <AppContent />
+              </RequireAuth>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppStateProvider>
     </BrowserRouter>
   );
 }
-

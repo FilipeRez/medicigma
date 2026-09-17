@@ -104,7 +104,7 @@ export const FinancesView: React.FC<FinancesViewProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `financeiro-saorafael-${months[currentMonthIndex].replace(' ', '-')}.csv`);
+    link.setAttribute('download', `financeiro-${months[currentMonthIndex].replace(' ', '-')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

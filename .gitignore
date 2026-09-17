@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# ferramenta de automacao de navegador cria essa pasta dentro do projeto
+.playwright-mcp/

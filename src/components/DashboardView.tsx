@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   TrendingUp,
   Stethoscope,
@@ -20,6 +20,7 @@ import {
   Repeat,
 } from 'lucide-react';
 import { Transaction } from '../types';
+import { useApp } from '../state/AppState';
 
 interface DashboardViewProps {
   onOpenNewTransaction: (type: 'receita' | 'despesa') => void;
@@ -34,29 +35,104 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenTissModal,
   onViewAllTransactions,
 }) => {
+  const { data, user, clinic } = useApp();
   const [period, setPeriod] = useState<'mes' | 'hoje' | 'semana' | 'ano'>('mes');
-  const [isConsolidatedView, setIsConsolidatedView] = useState(false);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
-  // Multiplier for toggle demo (Doctor individual vs Clinic Consolidated)
-  const mult = isConsolidatedView ? 2.85 : 1.0;
+  const formatBRL = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-  const formatBRL = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(val * mult);
-  };
+  const hojeIso = new Date().toISOString().slice(0, 10);
 
-  const dailyData = [
-    { day: 'Seg', height: 42, value: 2400 },
-    { day: 'Ter', height: 58, value: 3600 },
-    { day: 'Qua', height: 48, value: 2900 },
-    { day: 'Qui', height: 74, value: 4800, isPeak: true },
-    { day: 'Sex', height: 54, value: 3400 },
-    { day: 'Sáb', height: 26, value: 1600 },
-    { day: 'Dom', height: 12, value: 750 },
-  ];
+  /** Mês de referência: o corrente, ou o último com lançamento — a demo nunca abre vazia. */
+  const mesRef = useMemo(() => {
+    const meses = Array.from(new Set(data.transactions.map((t) => t.isoDate.slice(0, 7)))).sort();
+    const corrente = hojeIso.slice(0, 7);
+    if (meses.includes(corrente)) return corrente;
+    return meses.filter((m) => m <= corrente).pop() ?? meses[meses.length - 1] ?? corrente;
+  }, [data.transactions, hojeIso]);
+
+  const noPeriodo = useMemo(() => {
+    const limite = new Date(hojeIso);
+    limite.setDate(limite.getDate() - 7);
+    const inicioSemana = limite.toISOString().slice(0, 10);
+    return data.transactions.filter((t) => {
+      if (period === 'hoje') return t.isoDate === hojeIso;
+      if (period === 'semana') return t.isoDate > inicioSemana && t.isoDate <= hojeIso;
+      if (period === 'ano') return t.isoDate.slice(0, 4) === mesRef.slice(0, 4);
+      return t.isoDate.slice(0, 7) === mesRef;
+    });
+  }, [data.transactions, period, mesRef, hojeIso]);
+
+  const kpi = useMemo(() => {
+    const receitas = noPeriodo.filter((t) => t.type === 'receita' && t.status !== 'Glosa');
+    const despesas = noPeriodo.filter((t) => t.type === 'despesa');
+    const faturamento = receitas.reduce((a, t) => a + t.amount, 0);
+    const convenio = receitas.filter((t) => t.method === 'TISS').reduce((a, t) => a + t.amount, 0);
+    const particular = faturamento - convenio;
+    const aReceber = receitas.filter((t) => t.status === 'Pendente').reduce((a, t) => a + t.amount, 0);
+    const aPagar = despesas.filter((t) => t.status === 'Pendente').reduce((a, t) => a + Math.abs(t.amount), 0);
+    const totalDespesas = despesas.reduce((a, t) => a + Math.abs(t.amount), 0);
+    const glosas = noPeriodo.filter((t) => t.status === 'Glosa').reduce((a, t) => a + Math.abs(t.amount), 0);
+    const resultado = faturamento - totalDespesas;
+
+    // mês anterior, para a variação
+    const [ano, mes] = mesRef.split('-').map(Number);
+    const anteriorData = new Date(ano, mes - 2, 1);
+    const anteriorYm = `${anteriorData.getFullYear()}-${String(anteriorData.getMonth() + 1).padStart(2, '0')}`;
+    const anterior = data.transactions
+      .filter((t) => t.isoDate.slice(0, 7) === anteriorYm && t.type === 'receita' && t.status !== 'Glosa')
+      .reduce((a, t) => a + t.amount, 0);
+    const variacao = anterior > 0 ? ((faturamento - anterior) / anterior) * 100 : 0;
+
+    return {
+      faturamento,
+      convenio,
+      particular,
+      aReceber,
+      aPagar,
+      glosas,
+      resultado,
+      margem: faturamento > 0 ? (resultado / faturamento) * 100 : 0,
+      anterior,
+      variacao,
+      pctParticular: faturamento > 0 ? (particular / faturamento) * 100 : 0,
+      pctConvenio: faturamento > 0 ? (convenio / faturamento) * 100 : 0,
+      contagemReceber: receitas.filter((t) => t.status === 'Pendente').length,
+      contagemPagar: despesas.filter((t) => t.status === 'Pendente').length,
+    };
+  }, [noPeriodo, data.transactions, mesRef]);
+
+  /** Últimos 7 dias de entradas, direto dos lançamentos. */
+  const dailyData = useMemo(() => {
+    const dias: { day: string; value: number; height: number; isPeak?: boolean }[] = [];
+    const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(hojeIso);
+      d.setDate(d.getDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      const value = data.transactions
+        .filter((t) => t.isoDate === iso && t.type === 'receita' && t.status !== 'Glosa')
+        .reduce((a, t) => a + t.amount, 0);
+      dias.push({ day: nomes[d.getDay()], value, height: 0 });
+    }
+    const maior = Math.max(...dias.map((d) => d.value), 1);
+    return dias.map((d) => ({
+      ...d,
+      height: Math.max((d.value / maior) * 100, 3),
+      isPeak: d.value === maior && d.value > 0,
+    }));
+  }, [data.transactions, hojeIso]);
+
+  const mediaDiaria = dailyData.reduce((a, d) => a + d.value, 0) / 7;
+  const profissional = data.professionals.find((p) => p.id === user?.professionalId);
+
+  // O médico não enxerga as contas da clínica; para ele os dois últimos cartões
+  // falam de repasse, que é o que de fato entra no bolso dele.
+  const ehMedico = user?.role === 'medico';
+  const percentRepasse = profissional?.repassePercent ?? 0;
+  const repasseEstimado = (kpi.faturamento * percentRepasse) / 100;
+  const retencaoClinica = kpi.faturamento - repasseEstimado;
 
   return (
     <div className="flex flex-col gap-4 max-w-5xl mx-auto w-full">
@@ -64,37 +140,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs relative overflow-hidden">
         <div className="absolute -right-6 -top-6 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="flex items-center justify-between gap-2 mb-2.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-teal-600 animate-pulse" />
-              {isConsolidatedView ? 'Visão Consolidada da Clínica' : 'Visão Individual'}
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-              <Building2 className="w-3 h-3 text-slate-500" />
-              Jardins
-            </span>
-          </div>
-
-          <button
-            onClick={() => setIsConsolidatedView(!isConsolidatedView)}
-            className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-teal-700 text-xs font-semibold transition-colors cursor-pointer"
-            title="Alternar entre produção médica própria e visão executiva"
-          >
-            <Repeat className="w-3.5 h-3.5" />
-            <span>{isConsolidatedView ? 'Ver Individual' : 'Trocar Visão'}</span>
-          </button>
+        <div className="flex items-center gap-2 flex-wrap mb-2.5">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-600" />
+            {user?.role === 'medico' ? 'Produção própria' : 'Visão da clínica'}
+          </span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+            <Building2 className="w-3 h-3 text-slate-500" />
+            {clinic.shortName}
+          </span>
         </div>
 
         <div className="flex items-baseline justify-between mt-1">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Olá, Dra. Isabella Silva
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight truncate">
+              Olá, {user?.name.split(' ').slice(0, 2).join(' ')}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 flex items-center gap-1.5 mt-0.5">
-              <span className="font-semibold text-teal-700 font-mono">CRM/SP 184.209</span>
-              <span className="text-slate-300">•</span>
-              <span>Cardiologia Clínica & Ecocardiografia</span>
+            <p className="text-xs sm:text-sm text-slate-500 flex items-center gap-1.5 mt-0.5 flex-wrap">
+              {profissional?.crm && (
+                <>
+                  <span className="font-semibold text-teal-700 font-mono">CRM {profissional.crm}</span>
+                  <span className="text-slate-300">•</span>
+                </>
+              )}
+              <span>{profissional?.specialty ?? clinic.config.name}</span>
             </p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shrink-0">
@@ -143,7 +212,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80'
           }`}
         >
-          Ano 2024
+          Este Ano
         </button>
         <div className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center shrink-0">
           <Calendar className="w-4 h-4" />
@@ -154,19 +223,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs relative overflow-hidden">
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Faturamento do Mês
+            {period === 'hoje' ? 'Faturamento de hoje' : period === 'semana' ? 'Faturamento da semana' : period === 'ano' ? 'Faturamento do ano' : 'Faturamento do mês'}
           </span>
           <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-xs border border-emerald-200/60">
             <TrendingUp className="w-3.5 h-3.5" />
-            +14.2%
+            {kpi.variacao >= 0 ? '+' : ''}{kpi.variacao.toFixed(1)}%
           </div>
         </div>
 
         <div className="flex items-baseline gap-2 mt-1">
           <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-display">
-            {formatBRL(68450)}
+            {formatBRL(kpi.faturamento)}
           </span>
-          <span className="text-xs text-slate-400">vs. {formatBRL(59940)}</span>
+          <span className="text-xs text-slate-400">{kpi.anterior > 0 ? `vs. ${formatBRL(kpi.anterior)}` : 'sem base anterior'}</span>
         </div>
 
         {/* Dual Bar Progress */}
@@ -174,12 +243,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
             <div
               className="h-full bg-teal-600 rounded-l-full transition-all duration-500"
-              style={{ width: '61.5%' }}
+              style={{ width: `${kpi.pctParticular}%` }}
               title="Particular (61.5%)"
             />
             <div
               className="h-full bg-sky-600 rounded-r-full transition-all duration-500"
-              style={{ width: '38.5%' }}
+              style={{ width: `${kpi.pctConvenio}%` }}
               title="Convênios TISS (38.5%)"
             />
           </div>
@@ -190,8 +259,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="w-2 h-2 rounded-full bg-teal-600" />
                 <span className="text-xs text-slate-600 font-medium">Particular (Direto)</span>
               </div>
-              <span className="text-sm font-bold text-slate-900">{formatBRL(42100)}</span>
-              <span className="text-[11px] text-teal-700 font-semibold">61.5% do total</span>
+              <span className="text-sm font-bold text-slate-900">{formatBRL(kpi.particular)}</span>
+              <span className="text-[11px] text-teal-700 font-semibold">{kpi.pctParticular.toFixed(1)}% do total</span>
             </div>
 
             <div className="flex flex-col bg-slate-50/80 p-2.5 rounded-xl border border-slate-100">
@@ -199,8 +268,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="w-2 h-2 rounded-full bg-sky-600" />
                 <span className="text-xs text-slate-600 font-medium">Convênios (TISS)</span>
               </div>
-              <span className="text-sm font-bold text-slate-900">{formatBRL(26350)}</span>
-              <span className="text-[11px] text-sky-700 font-semibold">38.5% do total</span>
+              <span className="text-sm font-bold text-slate-900">{formatBRL(kpi.convenio)}</span>
+              <span className="text-[11px] text-sky-700 font-semibold">{kpi.pctConvenio.toFixed(1)}% do total</span>
             </div>
           </div>
         </div>
@@ -221,9 +290,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div>
             <span className="text-[11px] text-slate-500 font-medium block">A Receber</span>
             <span className="text-base sm:text-lg font-bold text-slate-900 block font-display">
-              {formatBRL(31800)}
+              {formatBRL(kpi.aReceber)}
             </span>
-            <p className="text-[11px] text-slate-500 truncate mt-0.5">18 guias TISS repasse</p>
+            <p className="text-[11px] text-slate-500 truncate mt-0.5">{kpi.contagemReceber} lançamento{kpi.contagemReceber === 1 ? '' : 's'} em aberto</p>
           </div>
         </div>
 
@@ -238,12 +307,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
           </div>
           <div>
-            <span className="text-[11px] text-slate-500 font-medium block">A Pagar</span>
+            <span className="text-[11px] text-slate-500 font-medium block">{ehMedico ? 'Retenção da clínica' : 'A Pagar'}</span>
             <span className="text-base sm:text-lg font-bold text-slate-900 block font-display">
-              {formatBRL(18220)}
+              {formatBRL(ehMedico ? retencaoClinica : kpi.aPagar)}
             </span>
             <p className="text-[11px] text-rose-600 font-semibold truncate mt-0.5">
-              R$ 4.300 vence 7d
+              {ehMedico
+                ? `${100 - percentRepasse}% da produção`
+                : `${kpi.contagemPagar} conta${kpi.contagemPagar === 1 ? '' : 's'} a vencer`}
             </p>
           </div>
         </div>
@@ -259,12 +330,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
           </div>
           <div>
-            <span className="text-[11px] text-slate-500 font-medium block">Resultado</span>
+            <span className="text-[11px] text-slate-500 font-medium block">{ehMedico ? 'Repasse estimado' : 'Resultado'}</span>
             <span className="text-base sm:text-lg font-bold text-teal-700 block font-display">
-              {formatBRL(50230)}
+              {formatBRL(ehMedico ? repasseEstimado : kpi.resultado)}
             </span>
             <p className="text-[11px] text-emerald-700 font-medium truncate mt-0.5">
-              Margem de 73.4%
+              {ehMedico ? `${percentRepasse}% da produção` : `Margem de ${kpi.margem.toFixed(1)}%`}
             </p>
           </div>
         </div>
@@ -282,10 +353,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div>
             <span className="text-[11px] text-slate-500 font-medium block">Glosas Recurso</span>
             <span className="text-base sm:text-lg font-bold text-slate-900 block font-display">
-              {formatBRL(720)}
+              {formatBRL(kpi.glosas)}
             </span>
             <p className="text-[11px] text-amber-700 font-medium truncate mt-0.5">
-              1.8% índice baixo
+              {kpi.faturamento > 0 ? ((kpi.glosas / kpi.faturamento) * 100).toFixed(1) : '0.0'}% da receita
             </p>
           </div>
         </div>
@@ -357,7 +428,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <p className="text-xs text-slate-500">Entradas diárias nos últimos 7 dias</p>
           </div>
           <span className="text-xs font-semibold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-100">
-            Média R$ 3.2k/dia
+            Média {formatBRL(mediaDiaria)}/dia
           </span>
         </div>
 

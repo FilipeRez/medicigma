@@ -16,6 +16,8 @@ export interface Professional {
   initials?: string;
   color?: string;
   lastAudit?: string;
+  /** Percentual da produção que fica com o profissional (o resto é da clínica). */
+  repassePercent?: number;
 }
 
 export interface Patient {
@@ -29,6 +31,7 @@ export interface Patient {
   ltv: number;
   lastDate: string;
   avatarUrl: string;
+  initials?: string;
   procedures: {
     title: string;
     detail: string;
@@ -50,13 +53,18 @@ export interface Transaction {
   category: string;
   type: 'receita' | 'despesa';
   amount: number;
+  /** Rótulo exibido na interface ("Hoje, 10:42", "Vence 05/12"). */
   date: string;
+  /** Data real no formato YYYY-MM-DD — é o que alimenta relatórios e repasses. */
+  isoDate: string;
   status: 'Liquidado' | 'Pendente' | 'Pago' | 'Glosa';
   method: 'Pix' | 'Boleto' | 'Cartão' | 'TISS' | 'Repasse';
   badgeLabel?: string;
   xmlTag?: boolean;
   glosaCode?: string;
   deadline?: string;
+  /** Profissional que produziu a receita — base do cálculo de repasse. */
+  professionalId?: string;
 }
 
 export interface ClinicConfig {
@@ -68,4 +76,55 @@ export interface ClinicConfig {
   primaryColor: string;
   primaryColorName: string;
   isWhiteLabelActive: boolean;
+}
+
+/** O dado mutável de um tenant — o que é persistido e o que as telas editam. */
+export interface ClinicData {
+  config: ClinicConfig;
+  professionals: Professional[];
+  patients: Patient[];
+  transactions: Transaction[];
+}
+
+/** Uma clínica-cliente do escritório contábil. Cada uma é um tenant isolado. */
+export interface Clinic extends ClinicData {
+  id: string;
+  shortName: string;
+  segment: string;
+}
+
+export type UserRole = 'escritorio' | 'clinica' | 'medico';
+
+export interface DemoUser {
+  id: string;
+  login: string;
+  password: string;
+  name: string;
+  role: UserRole;
+  roleLabel: string;
+  avatarUrl?: string;
+  initials?: string;
+  /** Clínicas que este usuário enxerga. O escritório vê todas; os demais, uma só. */
+  clinicIds: string[];
+  /** Para o perfil médico: de quem é a produção visível. */
+  professionalId?: string;
+  description: string;
+}
+
+export interface Session {
+  userId: string;
+  activeClinicId: string;
+}
+
+/** Linha da tela de Repasses, calculada a partir de transações e profissionais. */
+export interface RepasseRow {
+  professional: Professional;
+  producao: number;
+  glosado: number;
+  base: number;
+  percent: number;
+  repasse: number;
+  clinica: number;
+  atendimentos: number;
+  status: 'Pendente' | 'Pago';
 }

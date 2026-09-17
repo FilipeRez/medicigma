@@ -8,3 +8,12 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
+
+// Registra o service worker só no build de produção — em dev ele atrapalha o hot reload.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      /* sem service worker o app continua funcionando, só não instala offline */
+    });
+  });
+}
